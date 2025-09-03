@@ -24640,7 +24640,7 @@ MonoBehaviour:
   bankAngle: 45
   bankLerpSpeed: 7
   weaponVisual: {fileID: 6058842267007661753}
-  aimResetDelay: 2
+  aimResetDelay: 1.5
   aimResetLerpSpeed: 10
   dashSpeed: 50
   dashDuration: 0.6
@@ -24649,7 +24649,7 @@ MonoBehaviour:
   collisionFreezeTime: 0.25
   collisionCooldown: 0.05
   postCollisionIdleDelay: 0.7
-  maxKnockbackTilt: {x: 12.5, y: 25, z: 12.5}
+  maxKnockbackTilt: {x: 0, y: 25, z: 12.5}
   knockbackTiltLerpSpeed: 5
   knockbackForceMultiplier: 0.2
   knockbackDecaySpeed: 8
@@ -34635,7 +34635,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: b5bbe4026e14cad4cb5eec7341e21d44, type: 3}
-  m_Color: {r: 0.28655744, g: 0.5665598, b: 0.90943396, a: 0.2}
+  m_Color: {r: 0.28655744, g: 0.5665598, b: 0.90943396, a: 0.0627451}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

@@ -1,14 +1,17 @@
 ﻿using Sirenix.OdinInspector;
+using System;
 using System.Threading;
 using UnityEngine;
-
-/// <summary> 
-/// TODO: 
-/// - Asteroid rotate 
-/// </summary>
+using Random = UnityEngine.Random;
 
 public class ShipController : MonoBehaviour
 {
+    public static ShipController Instance { get; private set; }
+
+    public event Action<float> OnCollision;
+
+    #region Inspector Fields
+
     [Title("Movement")]
     [SerializeField] private float maxMoveSpeed = 40f;
     [SerializeField] private float turnDrag = 12f;
@@ -22,8 +25,8 @@ public class ShipController : MonoBehaviour
 
     [Title("Weapon")]
     [SerializeField] private Transform weaponVisual;
-    [SerializeField] private float aimResetDelay = 1.5f; 
-    [SerializeField] private float aimResetLerpSpeed = 4f; 
+    [SerializeField] private float aimResetDelay = 1.5f;
+    [SerializeField] private float aimResetLerpSpeed = 4f;
 
     [Title("Dash")]
     [SerializeField] private float dashSpeed = 100f;
@@ -39,6 +42,8 @@ public class ShipController : MonoBehaviour
     [SerializeField] private float knockbackTiltLerpSpeed = 6f;
     [SerializeField] private float knockbackForceMultiplier = 0.5f;
     [SerializeField] private float knockbackDecaySpeed = 8f;
+    [SerializeField] private float knockbackTiltEndThreshold = 1f;
+    [SerializeField] private float inputCancelTiltThreshold = 8f;
 
     [Title("Idle Bobbing")]
     [SerializeField] private float bobAmplitude = 0.2f;
@@ -50,9 +55,9 @@ public class ShipController : MonoBehaviour
     [SerializeField] private ParticleSystem thrustVfx;
     [SerializeField] private ParticleSystem dashVfx;
 
-    // ----- new tuning fields -----
-    [SerializeField] private float knockbackTiltEndThreshold = 1f;      // degree magnitude under which we consider tilt "neutral"
-    [SerializeField] private float inputCancelTiltThreshold = 8f;      // if player inputs and tilt <= this, cancel knockback early
+    #endregion
+
+    #region Private State
 
     // Input
     private Vector2 moveInput;
@@ -60,7 +65,7 @@ public class ShipController : MonoBehaviour
     private bool hasInput;
     private bool hasAimInput;
 
-    // Speed/Rot
+    // Speed/Rotation
     private float currentSpeed;
     private float currentAngularSpeed;
     private float speedVelocity;
@@ -80,9 +85,8 @@ public class ShipController : MonoBehaviour
     private float dashTimer;
     private float dashCooldownTimer;
     private bool isDashing;
-    private CancellationTokenSource dashCts;
 
-    // Collision / State
+    // Collision
     private float collisionFreezeTimer;
     private float collisionCooldownTimer;
     private float postCollisionIdleTimer;
@@ -95,18 +99,31 @@ public class ShipController : MonoBehaviour
     private bool isKnockback;
     private Vector3 knockbackTiltEuler;
     private Vector3 currentKnockbackTiltEuler;
+    private Vector3 knockbackSpinAxis;
+    private float knockbackSpinSpeed;
+
+    #endregion
+
+    #region Unity Methods
 
     private void Awake()
     {
-        if (thrustVfx != null) thrustVfx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        if (dashVfx != null) dashVfx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+
+        StopVfx(thrustVfx, true);
+        StopVfx(dashVfx, true);
 
         targetYaw = transform.eulerAngles.y;
 
         if (shipVisual != null)
         {
             visualBaseLocalPos = shipVisual.localPosition;
-            visualBaseLocalRot = shipVisual.localRotation; // simpan rotasi dasar
+            visualBaseLocalRot = shipVisual.localRotation;
         }
 
         hasInput = false;
@@ -116,47 +133,20 @@ public class ShipController : MonoBehaviour
 
     private void Update()
     {
-        // timers
-        if (collisionCooldownTimer > 0f) collisionCooldownTimer -= Time.deltaTime;
-        if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
+        UpdateTimers();
 
-        // Knockback override (while active, we handle knockback; but we will allow early exit if conditions met)
         if (isKnockback)
         {
             HandleKnockback();
             return;
         }
 
-        // Freeze setelah collision
-        if (collisionFreezeTimer > 0f)
-        {
-            collisionFreezeTimer -= Time.deltaTime;
-            if (collisionFreezeTimer <= 0f)
-            {
-                isColliding = false;
-                currentSpeed = 0f;
-                postCollisionIdleTimer = postCollisionIdleDelay;
-
-                if (hasInput && thrustVfx != null && !vfxPlaying)
-                {
-                    thrustVfx.Play(true);
-                    vfxPlaying = true;
-                }
-            }
-        }
-        else if (postCollisionIdleTimer > 0f)
-        {
-            postCollisionIdleTimer -= Time.deltaTime;
-        }
-
         if (isColliding) return;
 
-        // Input & Dash
         HandleMoveInput();
         HandleAimInput();
         HandleDashInput();
 
-        // Normal ship logic
         HandleThrustVfx();
         HandleMovement();
         HandleRotation();
@@ -169,64 +159,157 @@ public class ShipController : MonoBehaviour
     {
         if (collisionCooldownTimer > 0f || collisionFreezeTimer > 0f) return;
 
+        OnCollision?.Invoke(currentSpeed);
+        BeginCollision(other);
+    }
+
+    #endregion
+
+    #region Knockback
+
+    private void BeginCollision(Collider other)
+    {
         isColliding = true;
 
-        // -- knockback direction --
         knockbackDir = (transform.position - other.transform.position);
         knockbackDir.y = 0f;
         knockbackDir = knockbackDir.sqrMagnitude > 1e-4f ? knockbackDir.normalized : -transform.forward;
 
-        // -- force: scale by current speed, tunable --
-        knockbackForce = Mathf.Clamp(currentSpeed * knockbackForceMultiplier, 0f, 50f);
+        float dashBonus = isDashing ? 2f : 1f;
+        knockbackForce = Mathf.Clamp(currentSpeed * knockbackForceMultiplier * dashBonus, 0f, 80f);
 
-        // ----- Baseline tilt dari bank / current visual rotasi -----
-        Vector3 baseTilt = new Vector3(
-            shipVisual.localRotation.eulerAngles.x,
-            shipVisual.localRotation.eulerAngles.y,
-            shipVisual.localRotation.eulerAngles.z
-        );
-
-        // Konversi agar -180..180 (supaya nggak overflow 360)
-        baseTilt.x = Mathf.DeltaAngle(0f, baseTilt.x);
-        baseTilt.y = Mathf.DeltaAngle(0f, baseTilt.y);
-        baseTilt.z = Mathf.DeltaAngle(0f, baseTilt.z);
-
-        // ----- Knockback tilt dari arah relatif -----
         Vector3 localKnockback = transform.InverseTransformDirection(knockbackDir);
+        float speedFactor = Mathf.Clamp01(currentSpeed / maxMoveSpeed);
+        float tiltMultiplier = 1f + speedFactor * (isDashing ? 1.5f : 0.5f);
 
-        float tiltX = Mathf.Clamp(-Mathf.Abs(localKnockback.z) * maxKnockbackTilt.x, -maxKnockbackTilt.x, 0f); // selalu negatif
-        float tiltY = Mathf.Clamp(localKnockback.x * maxKnockbackTilt.y, -maxKnockbackTilt.y, maxKnockbackTilt.y);
-        float tiltZ = Mathf.Clamp(-localKnockback.x * maxKnockbackTilt.z * 0.5f, -maxKnockbackTilt.z, maxKnockbackTilt.z);
+        float tiltX = Mathf.Clamp(-Mathf.Abs(localKnockback.z) * maxKnockbackTilt.x * tiltMultiplier, -maxKnockbackTilt.x * 2f, 0f);
+        float tiltY = Mathf.Clamp(localKnockback.x * maxKnockbackTilt.y * tiltMultiplier, -maxKnockbackTilt.y * 2f, maxKnockbackTilt.y * 2f);
+        float tiltZ = Mathf.Clamp(-localKnockback.x * maxKnockbackTilt.z * 0.5f * tiltMultiplier, -maxKnockbackTilt.z * 2f, maxKnockbackTilt.z * 2f);
 
-        // ----- Gabungkan -----
-        knockbackTiltEuler = baseTilt + new Vector3(tiltX, tiltY, tiltZ);
-
+        knockbackTiltEuler = new Vector3(tiltX, tiltY, tiltZ);
         currentKnockbackTiltEuler = Vector3.zero;
 
         isKnockback = true;
         currentSpeed = 0f;
         currentAngularSpeed = 0f;
 
-        // Timers
         collisionFreezeTimer = collisionFreezeTime;
         collisionCooldownTimer = collisionCooldown;
 
-        // Reset dash & VFX
         isDashing = false;
         dashTimer = 0f;
-        if (dashVfx != null) dashVfx.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-
-        if (thrustVfx != null) thrustVfx.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        StopVfx(dashVfx);
+        StopVfx(thrustVfx);
         vfxPlaying = false;
+
+        knockbackSpinAxis = (transform.position - other.transform.position).normalized;
+        if (knockbackSpinAxis == Vector3.zero)
+            knockbackSpinAxis = Random.onUnitSphere;
+
+        knockbackSpinSpeed = currentSpeed * 5f * dashBonus;
     }
 
-    // ---------- Input ----------
+    private void HandleKnockback()
+    {
+        if (knockbackForce > 0.05f)
+            ApplyKnockbackMovement();
+        else
+            RecoverFromKnockback();
+    }
+
+    private void ApplyKnockbackMovement()
+    {
+        float effectiveDecay = isDashing ? knockbackDecaySpeed * 0.5f : knockbackDecaySpeed;
+        knockbackForce = Mathf.Lerp(knockbackForce, 0f, Time.deltaTime * effectiveDecay);
+        transform.position += knockbackDir * knockbackForce * Time.deltaTime;
+
+        float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed;
+        currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, knockbackTiltEuler, Time.deltaTime * effectiveLerp);
+
+        ApplyVisualTilt();
+        ApplyKnockbackSpin();
+    }
+
+    private void RecoverFromKnockback()
+    {
+        float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed * 1.1f;
+        currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, Vector3.zero, Time.deltaTime * effectiveLerp);
+
+        ApplyVisualTilt();
+        ApplyKnockbackSpin();
+
+        float tiltMag = currentKnockbackTiltEuler.magnitude;
+        bool tiltCloseEnough = tiltMag <= knockbackTiltEndThreshold;
+        bool playerWantsControl = hasInput && tiltMag <= inputCancelTiltThreshold;
+
+        if (tiltCloseEnough || playerWantsControl)
+            EndKnockback();
+    }
+
+    private void ApplyKnockbackSpin()
+    {
+        if (knockbackSpinSpeed > 0.1f)
+        {
+            transform.Rotate(knockbackSpinAxis * knockbackSpinSpeed * Time.deltaTime, Space.Self);
+            knockbackSpinSpeed = Mathf.Lerp(knockbackSpinSpeed, 0f, Time.deltaTime * 2f);
+        }
+    }
+
+    private void EndKnockback()
+    {
+        isKnockback = false;
+        knockbackForce = 0f;
+        knockbackSpinSpeed = 0f;
+
+        isColliding = false;
+        collisionFreezeTimer = 0f;
+        postCollisionIdleTimer = 0f;
+
+        if (hasInput && thrustVfx != null && !vfxPlaying)
+        {
+            thrustVfx.Play(true);
+            vfxPlaying = true;
+        }
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private void UpdateTimers()
+    {
+        if (collisionCooldownTimer > 0f) collisionCooldownTimer -= Time.deltaTime;
+        if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
+        if (collisionFreezeTimer > 0f)
+        {
+            collisionFreezeTimer -= Time.deltaTime;
+            if (collisionFreezeTimer <= 0f)
+            {
+                isColliding = false;
+                currentSpeed = 0f;
+                postCollisionIdleTimer = postCollisionIdleDelay;
+            }
+        }
+        else if (postCollisionIdleTimer > 0f)
+            postCollisionIdleTimer -= Time.deltaTime;
+    }
+
+    private void StopVfx(ParticleSystem vfx, bool clear = false)
+    {
+        if (vfx == null) return;
+        vfx.Stop(true, clear ? ParticleSystemStopBehavior.StopEmittingAndClear : ParticleSystemStopBehavior.StopEmitting);
+    }
+
+    #endregion
+
+    #region Input
+
     private void HandleMoveInput()
     {
         moveInput = InputManager.Instance != null ? InputManager.Instance.GetMoveInput() : Vector2.zero;
         hasInput = moveInput.sqrMagnitude > 0.01f;
     }
-    
+
     private void HandleAimInput()
     {
         aimInput = InputManager.Instance != null ? InputManager.Instance.GetAimInput() : Vector2.zero;
@@ -236,36 +319,20 @@ public class ShipController : MonoBehaviour
 
         if (hasAimInput)
         {
-            // reset timer saat ada input
             aimResetTimer = aimResetDelay;
-
-            // arah dari input
             Vector3 aimDir = new Vector3(aimInput.x, 0f, aimInput.y).normalized;
             Quaternion targetRot = Quaternion.LookRotation(aimDir, Vector3.up);
 
-            weaponVisual.rotation = Quaternion.Slerp(
-                weaponVisual.rotation,
-                targetRot,
-                Time.deltaTime * 15f
-            );
+            weaponVisual.rotation = Quaternion.Slerp(weaponVisual.rotation, targetRot, Time.deltaTime * 15f);
         }
         else
         {
             if (aimResetTimer > 0f)
-            {
-                // countdown delay
                 aimResetTimer -= Time.deltaTime;
-            }
             else
             {
-                // balik ke arah ship facing
                 Quaternion targetRot = Quaternion.LookRotation(transform.forward, Vector3.up);
-
-                weaponVisual.rotation = Quaternion.Slerp(
-                    weaponVisual.rotation,
-                    targetRot,
-                    Time.deltaTime * aimResetLerpSpeed
-                );
+                weaponVisual.rotation = Quaternion.Slerp(weaponVisual.rotation, targetRot, Time.deltaTime * aimResetLerpSpeed);
             }
         }
     }
@@ -274,81 +341,19 @@ public class ShipController : MonoBehaviour
     {
         if (InputManager.Instance == null) return;
 
-        // 1) Dash terjadi jika tombol ditekan, tidak sedang dash, dan cooldown dash telah selesai
-
         if (InputManager.Instance.ConsumeDashPressed() && !isDashing && dashCooldownTimer <= 0f)
         {
             isDashing = true;
             dashTimer = dashDuration;
             dashCooldownTimer = dashCooldown;
-
             if (dashVfx != null) dashVfx.Play(true);
         }
     }
 
-    // ---------- Knockback ----------
-    private void HandleKnockback()
-    {
-        // 1) apply movement + tilt while force remains
-        if (knockbackForce > 0.05f)
-        {
-            // decay force smoothly
-            knockbackForce = Mathf.Lerp(knockbackForce, 0f, Time.deltaTime * knockbackDecaySpeed);
-            transform.position += knockbackDir * knockbackForce * Time.deltaTime;
+    #endregion
 
-            // tilt approaches target (if player gives input, approach a bit faster but not instant)
-            float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed;
-            currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, knockbackTiltEuler, Time.deltaTime * effectiveLerp);
+    #region Movement
 
-            ApplyVisualTilt();
-            return;
-        }
-
-        // 2) recovery: tilt lerp back to zero
-        {
-            // recovery speed slightly faster if player inputs, but tuned to avoid snap
-            float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed * 1.1f;
-            currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, Vector3.zero, Time.deltaTime * effectiveLerp);
-
-            ApplyVisualTilt();
-
-            // decide when to finish knockback and return control
-            float tiltMag = currentKnockbackTiltEuler.magnitude;
-
-            bool tiltCloseEnough = tiltMag <= knockbackTiltEndThreshold;
-            bool playerWantsControl = hasInput && tiltMag <= inputCancelTiltThreshold;
-
-            if (tiltCloseEnough || playerWantsControl)
-            {
-                // finish knockback
-                isKnockback = false;
-                knockbackForce = 0f;
-
-                // clear freeze so player can move immediately
-                isColliding = false;
-                collisionFreezeTimer = 0f;
-                postCollisionIdleTimer = 0f;
-
-                // if player is holding input, (re)start thrust vfx
-                if (hasInput && thrustVfx != null && !vfxPlaying)
-                {
-                    thrustVfx.Play(true);
-                    vfxPlaying = true;
-                }
-
-                // process one immediate frame of movement so control feels instant
-                HandleMoveInput();
-                HandleThrustVfx();
-                HandleMovement();
-                HandleRotation();
-                HandleBanking();
-                HandleVisuals();
-                HandleDash();
-            }
-        }
-    }
-
-    // ---------- Movement ----------
     private void HandleMovement()
     {
         float currentYaw = transform.eulerAngles.y;
@@ -359,10 +364,7 @@ public class ShipController : MonoBehaviour
             Vector3 dir = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
             targetYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
 
-            float targetSpeed = maxMoveSpeed;
-            if (Mathf.Abs(yawDiff) > turnDragThreshold)
-                targetSpeed = Mathf.Max(0f, targetSpeed - turnDrag);
-
+            float targetSpeed = Mathf.Abs(yawDiff) > turnDragThreshold ? Mathf.Max(0f, maxMoveSpeed - turnDrag) : maxMoveSpeed;
             currentSpeed = Mathf.SmoothDamp(currentSpeed, targetSpeed, ref speedVelocity, inertiaSmooth);
         }
         else
@@ -401,7 +403,10 @@ public class ShipController : MonoBehaviour
         currentBank = Mathf.Lerp(currentBank, bankTarget, bankLerpSpeed * Time.deltaTime);
     }
 
-    // ---------- Visuals ----------
+    #endregion
+
+    #region Visuals
+
     private void HandleVisuals()
     {
         if (shipVisual == null) return;
@@ -429,11 +434,13 @@ public class ShipController : MonoBehaviour
         Quaternion bankRot = Quaternion.Euler(0f, 0f, currentBank);
         Quaternion knockbackRot = Quaternion.Euler(currentKnockbackTiltEuler);
 
-        // Selalu mulai dari rotasi dasar
         shipVisual.localRotation = visualBaseLocalRot * bankRot * knockbackRot;
     }
 
-    // ---------- VFX ----------
+    #endregion
+
+    #region VFX
+
     private void HandleThrustVfx()
     {
         if (thrustVfx == null) return;
@@ -445,12 +452,11 @@ public class ShipController : MonoBehaviour
         }
         else if (!hasInput && vfxPlaying)
         {
-            thrustVfx.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            StopVfx(thrustVfx);
             vfxPlaying = false;
         }
     }
 
-    // ---------- Dash ----------
     private void HandleDash()
     {
         if (!isDashing) return;
@@ -465,11 +471,13 @@ public class ShipController : MonoBehaviour
         if (dashTimer <= 0f)
         {
             isDashing = false;
-            if (dashVfx != null) dashVfx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            StopVfx(dashVfx, true);
         }
         else if (dashTimer <= dashVfxStopThreshold)
         {
-            if (dashVfx != null) dashVfx.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            StopVfx(dashVfx);
         }
     }
+
+    #endregion
 }

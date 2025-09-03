@@ -2419,6 +2419,8 @@ GameObject:
   - component: {fileID: 1332691451}
   - component: {fileID: 1332691450}
   - component: {fileID: 1332691449}
+  - component: {fileID: 1332691453}
+  - component: {fileID: 1332691452}
   m_Layer: 0
   m_Name: CinemachineCamera
   m_TagString: Untagged
@@ -2503,6 +2505,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1332691452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332691447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef07bc84b5332774895451ae0e965649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultShakeParams:
+    amplitude: 4
+    frequency: 0.5
+    duration: 0.5
+--- !u!114 &1332691453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332691447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68bb026fafb42b14791938953eaace77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  NoiseProfile: {fileID: 11400000, guid: e9ce97b7a206dc64d90931ea044e0c72, type: 2}
+  PivotOffset: {x: 0, y: 0, z: 0}
+  AmplitudeGain: 0
+  FrequencyGain: 0
+  m_NoiseOffsets: {x: -570.29724, y: -549.85, z: -728.1472}
 --- !u!1 &1464333117
 GameObject:
   m_ObjectHideFlags: 0
@@ -2974,10 +3009,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5356192128231957984, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6546282078617457261, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
-      propertyPath: maxKnockbackTilt.x
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
