@@ -2667,11 +2667,6 @@ Transform:
   - {fileID: 837222261}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &1635368249 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6058842267007661753, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
-  m_PrefabInstance: {fileID: 1621898223066524995}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1803898383
 GameObject:
   m_ObjectHideFlags: 0
@@ -2982,12 +2977,8 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6546282078617457261, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
-      propertyPath: weaponVisual
-      value: 
-      objectReference: {fileID: 1635368249}
-    - target: {fileID: 6546282078617457261, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
-      propertyPath: maxKnockbackTilt.z
-      value: 12.5
+      propertyPath: maxKnockbackTilt.x
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

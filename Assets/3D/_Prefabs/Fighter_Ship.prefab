@@ -24639,23 +24639,26 @@ MonoBehaviour:
   maxAngularSpeed: 200
   bankAngle: 45
   bankLerpSpeed: 7
-  bobAmplitude: 0.5
-  bobFrequency: 4
-  bobSmooth: 5
+  weaponVisual: {fileID: 6058842267007661753}
+  aimResetDelay: 2
+  aimResetLerpSpeed: 10
   dashSpeed: 50
   dashDuration: 0.6
   dashCooldown: 2
   dashVfxStopThreshold: 0.4
-  shipVisual: {fileID: 7912638241163566597}
-  thrustVfx: {fileID: 2564759502130868690}
-  dashVfx: {fileID: 647021291262473269}
   collisionFreezeTime: 0.25
   collisionCooldown: 0.05
   postCollisionIdleDelay: 0.7
-  maxKnockbackTilt: {x: 12.5, y: 25, z: 25}
+  maxKnockbackTilt: {x: 12.5, y: 25, z: 12.5}
   knockbackTiltLerpSpeed: 5
   knockbackForceMultiplier: 0.2
   knockbackDecaySpeed: 8
+  bobAmplitude: 0.5
+  bobFrequency: 4
+  bobSmooth: 5
+  shipVisual: {fileID: 7912638241163566597}
+  thrustVfx: {fileID: 2564759502130868690}
+  dashVfx: {fileID: 647021291262473269}
   knockbackTiltEndThreshold: 1
   inputCancelTiltThreshold: 8
 --- !u!54 &7799080076681177592
