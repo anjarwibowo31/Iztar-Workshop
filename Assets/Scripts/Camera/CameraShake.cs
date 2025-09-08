@@ -1,3 +1,4 @@
+using Iztar.ShipModule;
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;

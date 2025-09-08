@@ -1,108 +1,304 @@
-using Sirenix.OdinInspector;
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Sirenix.OdinInspector;
 
-public class InputManager : MonoBehaviour
+using Joystick = Iztar.InputSystem.Joystick;
+
+namespace Iztar.Manager
 {
-    public static InputManager Instance { get; private set; }
-
-    [Header("Custom Joystick (Mobile)")]
-    [SerializeField] private Joystick leftJoystick;
-    [SerializeField] private Joystick rightJoystick;
-
-    private ShipInputActions shipInputActions;
-    [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 systemMovementInput;
-    [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 leftJoystickInput;
-    [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 systemAimInput;
-    [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 rightJoystickInput;
-
-    [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private bool dashPressed;
-
-    private void Awake()
+    public class InputManager : MonoBehaviour
     {
-        SetupSingleton();
-        shipInputActions = new ShipInputActions();
-    }
+        public static InputManager Instance { get; private set; }
 
-    private void OnEnable()
-    {
-        shipInputActions.Enable();
+        [Header("Custom Joystick (Mobile)")]
+        [SerializeField] private Joystick leftJoystick;
+        [SerializeField] private Joystick rightJoystick;
 
-        // Movement
-        shipInputActions.ShipController.Move.performed += ctx => systemMovementInput = ctx.ReadValue<Vector2>();
-        shipInputActions.ShipController.Move.canceled += ctx => systemMovementInput = Vector2.zero;
+        private ShipInputActions shipInputActions;
 
-        // Dash
-        shipInputActions.ShipController.Dash.performed += ctx => dashPressed = true;
+        [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 systemMovementInput;
+        [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 leftJoystickInput;
+        [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 systemAimInput;
+        [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private Vector2 rightJoystickInput;
+        [ShowInInspector, ReadOnly, BoxGroup("Input Data")] private bool dashPressed;
 
-        // Aim
-        shipInputActions.ShipController.Aim.performed += ctx => systemAimInput = ctx.ReadValue<Vector2>();
-        shipInputActions.ShipController.Aim.canceled += ctx => systemAimInput = Vector2.zero;
-    }
+        // Delegate references
+        private Action<InputAction.CallbackContext> movePerformedHandler;
+        private Action<InputAction.CallbackContext> moveCanceledHandler;
+        private Action<InputAction.CallbackContext> dashPerformedHandler;
+        private Action<InputAction.CallbackContext> aimPerformedHandler;
+        private Action<InputAction.CallbackContext> aimCanceledHandler;
 
-    private void OnDisable()
-    {
-        shipInputActions.ShipController.Move.performed -= ctx => systemMovementInput = ctx.ReadValue<Vector2>();
-        shipInputActions.ShipController.Move.canceled -= ctx => systemMovementInput = Vector2.zero;
+        private Action<Vector2> leftJoystickHandler;
+        private Action<Vector2> rightJoystickHandler;
 
-        shipInputActions.ShipController.Dash.performed -= ctx => dashPressed = true;
+        // Events
+        public event Action<Vector2> OnAimInputPerformed;
+        public event Action OnAimInputCancelled;
 
-        shipInputActions.ShipController.Aim.performed -= ctx => systemAimInput = ctx.ReadValue<Vector2>();
-        shipInputActions.ShipController.Aim.canceled -= ctx => systemAimInput = Vector2.zero;
-
-        shipInputActions.Disable();
-    }
-
-    private void Update()
-    {
-        if (leftJoystick != null)
-            leftJoystickInput = leftJoystick.Direction;
-
-        if (rightJoystick != null)
-            rightJoystickInput = rightJoystick.Direction;
-    }
-
-    private void SetupSingleton()
-    {
-        if (Instance != null && Instance != this)
+        private void Awake()
         {
-            Destroy(gameObject);
-            return;
+            SetupSingleton();
+            shipInputActions = new ShipInputActions();
+
+            // Input System handlers
+            movePerformedHandler = ctx => systemMovementInput = ctx.ReadValue<Vector2>();
+            moveCanceledHandler = ctx => systemMovementInput = Vector2.zero;
+            dashPerformedHandler = ctx => dashPressed = true;
+
+            aimPerformedHandler = ctx =>
+            {
+                systemAimInput = ctx.ReadValue<Vector2>();
+                OnAimInputPerformed?.Invoke(systemAimInput);
+            };
+            aimCanceledHandler = ctx =>
+            {
+                systemAimInput = Vector2.zero;
+                OnAimInputCancelled?.Invoke();
+            };
+
+            // Joystick handlers
+            leftJoystickHandler = val => leftJoystickInput = val;
+
+            rightJoystickHandler = val =>
+            {
+                rightJoystickInput = val;
+                if (val.sqrMagnitude > 0.01f)
+                    OnAimInputPerformed?.Invoke(val);
+                else
+                    OnAimInputCancelled?.Invoke();
+            };
         }
-        Instance = this;
-    }
 
-    public Vector2 GetMoveInput()
-    {
-        Vector2 combined = systemMovementInput;
-
-        if (leftJoystickInput.sqrMagnitude > 0.01f)
-            combined += leftJoystickInput;
-
-        if (combined.sqrMagnitude > 1f)
-            combined.Normalize();
-
-        return combined;
-    }
-
-    public Vector2 GetAimInput()
-    {
-        if (rightJoystick != null && rightJoystick.Direction.sqrMagnitude > 0.01f)
-            return rightJoystick.Direction;
-
-        if (systemAimInput.sqrMagnitude > 0.01f)
-            return systemAimInput;
-
-        return Vector2.zero;
-    }
-
-    public bool ConsumeDashPressed()
-    {
-        if (dashPressed)
+        private void OnEnable()
         {
-            dashPressed = false;
-            return true;
+            shipInputActions.Enable();
+
+            shipInputActions.ShipController.Move.performed += movePerformedHandler;
+            shipInputActions.ShipController.Move.canceled += moveCanceledHandler;
+            shipInputActions.ShipController.Dash.performed += dashPerformedHandler;
+            shipInputActions.ShipController.Aim.performed += aimPerformedHandler;
+            shipInputActions.ShipController.Aim.canceled += aimCanceledHandler;
+
+            if (leftJoystick != null) leftJoystick.OnDirectionChanged += leftJoystickHandler;
+            if (rightJoystick != null) rightJoystick.OnDirectionChanged += rightJoystickHandler;
         }
-        return false;
+
+        private void OnDisable()
+        {
+            shipInputActions.ShipController.Move.performed -= movePerformedHandler;
+            shipInputActions.ShipController.Move.canceled -= moveCanceledHandler;
+            shipInputActions.ShipController.Dash.performed -= dashPerformedHandler;
+            shipInputActions.ShipController.Aim.performed -= aimPerformedHandler;
+            shipInputActions.ShipController.Aim.canceled -= aimCanceledHandler;
+
+            if (leftJoystick != null) leftJoystick.OnDirectionChanged -= leftJoystickHandler;
+            if (rightJoystick != null) rightJoystick.OnDirectionChanged -= rightJoystickHandler;
+
+            shipInputActions.Disable();
+        }
+
+        private void SetupSingleton()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+        }
+
+        // Public API
+        public Vector2 GetMoveInput()
+        {
+            Vector2 combined = systemMovementInput;
+
+            if (leftJoystickInput.sqrMagnitude > 0.01f)
+                combined += leftJoystickInput;
+
+            if (combined.sqrMagnitude > 1f)
+                combined.Normalize();
+
+            return combined;
+        }
+
+        public Vector2 GetAimInput()
+        {
+            if (rightJoystickInput.sqrMagnitude > 0.01f)
+                return rightJoystickInput;
+
+            if (systemAimInput.sqrMagnitude > 0.01f)
+                return systemAimInput;
+
+            return Vector2.zero;
+        }
+
+        public bool ConsumeDashPressed()
+        {
+            if (dashPressed)
+            {
+                dashPressed = false;
+                return true;
+            }
+            return false;
+        }
     }
 }
+
+#region OLD_SCRIPT
+//using System;
+//using UnityEngine;
+//using UnityEngine.InputSystem;
+//using Sirenix.OdinInspector;
+//using Joystick = Iztar.InputSystem.Joystick;
+
+//namespace Iztar.Manager
+//{
+//    public class InputManager : MonoBehaviour
+//    {
+//        public static InputManager Instance { get; private set; }
+
+//        [Header("Custom Joystick (Mobile)")]
+//        [SerializeField] private Joystick leftJoystick;
+//        [SerializeField] private Joystick rightJoystick;
+
+//        private ShipInputActions shipInputActions;
+
+//        [ShowInInspector, ReadOnly, BoxGroup("Input Data")]
+//        private Vector2 systemMovementInput;
+
+//        [ShowInInspector, ReadOnly, BoxGroup("Input Data")]
+//        private Vector2 leftJoystickInput;
+
+//        [ShowInInspector, ReadOnly, BoxGroup("Input Data")]
+//        private Vector2 systemAimInput;
+
+//        [ShowInInspector, ReadOnly, BoxGroup("Input Data")]
+//        private Vector2 rightJoystickInput;
+
+//        [ShowInInspector, ReadOnly, BoxGroup("Input Data")]
+//        private bool dashPressed;
+
+//        // Delegate references to safely unsubscribe
+//        private Action<InputAction.CallbackContext> movePerformedHandler;
+//        private Action<InputAction.CallbackContext> moveCanceledHandler;
+//        private Action<InputAction.CallbackContext> dashPerformedHandler;
+//        private Action<InputAction.CallbackContext> aimPerformedHandler;
+//        private Action<InputAction.CallbackContext> aimCanceledHandler;
+
+//        private Action<Vector2> leftJoystickHandler;
+//        private Action<Vector2> rightJoystickHandler;
+
+//        public event Action<Vector2> OnAimInput;
+
+//        private void Awake()
+//        {
+//            SetupSingleton();
+//            shipInputActions = new ShipInputActions();
+
+//            // Input System handlers
+//            movePerformedHandler = ctx => systemMovementInput = ctx.ReadValue<Vector2>();
+//            moveCanceledHandler = ctx => systemMovementInput = Vector2.zero;
+//            dashPerformedHandler = ctx => dashPressed = true;
+
+//            aimPerformedHandler = ctx =>
+//            {
+//                systemAimInput = ctx.ReadValue<Vector2>();
+//                OnAimInput?.Invoke(systemAimInput);
+//            };
+
+//            aimCanceledHandler = ctx =>
+//            {
+//                systemAimInput = Vector2.zero;
+//                OnAimInput?.Invoke(systemAimInput);
+//            };
+
+//            // Joystick handlers
+//            leftJoystickHandler = val => leftJoystickInput = val;
+//            rightJoystickHandler = val =>
+//            {
+//                rightJoystickInput = val;
+//                OnAimInput?.Invoke(val);
+//            };
+//        }
+
+//        private void OnEnable()
+//        {
+//            shipInputActions.Enable();
+
+//            // Input System bindings
+//            shipInputActions.ShipController.Move.performed += movePerformedHandler;
+//            shipInputActions.ShipController.Move.canceled += moveCanceledHandler;
+//            shipInputActions.ShipController.Dash.performed += dashPerformedHandler;
+//            shipInputActions.ShipController.Aim.performed += aimPerformedHandler;
+//            shipInputActions.ShipController.Aim.canceled += aimCanceledHandler;
+
+//            // Joystick bindings
+//            if (leftJoystick != null) leftJoystick.OnDirectionChanged += leftJoystickHandler;
+//            if (rightJoystick != null) rightJoystick.OnDirectionChanged += rightJoystickHandler;
+//        }
+
+//        private void OnDisable()
+//        {
+//            // Input System unbind
+//            shipInputActions.ShipController.Move.performed -= movePerformedHandler;
+//            shipInputActions.ShipController.Move.canceled -= moveCanceledHandler;
+//            shipInputActions.ShipController.Dash.performed -= dashPerformedHandler;
+//            shipInputActions.ShipController.Aim.performed -= aimPerformedHandler;
+//            shipInputActions.ShipController.Aim.canceled -= aimCanceledHandler;
+
+//            // Joystick unbind
+//            if (leftJoystick != null) leftJoystick.OnDirectionChanged -= leftJoystickHandler;
+//            if (rightJoystick != null) rightJoystick.OnDirectionChanged -= rightJoystickHandler;
+
+//            shipInputActions.Disable();
+//        }
+
+//        private void SetupSingleton()
+//        {
+//            if (Instance != null && Instance != this)
+//            {
+//                Destroy(gameObject);
+//                return;
+//            }
+//            Instance = this;
+//        }
+
+//        // Public API
+//        public Vector2 GetMoveInput()
+//        {
+//            Vector2 combined = systemMovementInput;
+
+//            if (leftJoystickInput.sqrMagnitude > 0.01f)
+//                combined += leftJoystickInput;
+
+//            if (combined.sqrMagnitude > 1f)
+//                combined.Normalize();
+
+//            return combined;
+//        }
+
+//        public Vector2 GetAimInput()
+//        {
+//            if (rightJoystickInput.sqrMagnitude > 0.01f)
+//                return rightJoystickInput;
+
+//            if (systemAimInput.sqrMagnitude > 0.01f)
+//                return systemAimInput;
+
+//            return Vector2.zero;
+//        }
+
+//        public bool ConsumeDashPressed()
+//        {
+//            if (dashPressed)
+//            {
+//                dashPressed = false;
+//                return true;
+//            }
+//            return false;
+//        }
+//    }
+//}
+#endregion
