@@ -4944,6 +4944,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RocketLaunch_Projectile
       objectReference: {fileID: 0}
+    - target: {fileID: 8907192758284916238, guid: 78f0fe04896fd5c4987620258e04691e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

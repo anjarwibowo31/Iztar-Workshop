@@ -155,9 +155,11 @@ namespace Iztar.ShipModule
         private void OnTriggerEnter(Collider other)
         {
             if (collisionCooldownTimer > 0f || collisionFreezeTimer > 0f) return;
-
-            OnCollision?.Invoke(currentSpeed);
-            BeginCollision(other);
+            if (other.CompareTag("Obstacle"))
+            {
+                OnCollision?.Invoke(currentSpeed);
+                BeginCollision(other);
+            }
         }
 
         #endregion

@@ -1,4 +1,5 @@
 using Iztar.ShipModule;
+using Sirenix.OdinInspector;
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;

@@ -19,14 +19,14 @@ public class TwinGunWeapon : Weapon
         projectilePool = new ObjectPool<Projectile>(
             createFunc: () =>
             {
-                // Buat projectile baru
                 Projectile proj = Instantiate(projectilePrefab);
-                proj.SetPool(projectilePool); // biar projectile bisa balik ke pool
+
+                proj.transform.parent = SceneGameObjectContainer.ProjectileContainer;
+                proj.SetPool(projectilePool);
                 return proj;
             },
             actionOnGet: proj =>
             {
-                // aktifkan saat diambil
                 proj.gameObject.SetActive(true);
             },
             actionOnRelease: proj =>
@@ -38,6 +38,9 @@ public class TwinGunWeapon : Weapon
                 Destroy(proj.gameObject);
             }
         );
+
+        // Prevent immediate firing
+        fireCooldown = fireRate;
     }
 
     private void Update()
