@@ -1,7 +1,6 @@
 ﻿using Iztar.Manager;
 using Sirenix.OdinInspector;
 using System;
-using System.Threading;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -10,43 +9,46 @@ namespace Iztar.ShipModule
     public class ShipController : MonoBehaviour
     {
         public static ShipController Instance { get; private set; }
-
         public event Action<float> OnCollision;
 
         #region Inspector Fields
+
         [Title("Movement")]
-        [SerializeField] private float maxMoveSpeed = 40f;       // lebih cepat
-        [SerializeField] private float turnDrag = 4f;            // drag dikurangi biar tetap lincah saat belok
-        [SerializeField] private float turnDragThreshold = 25f;  // penalti belok baru terasa di sudut tajam
-        [SerializeField] private float inertiaSmooth = 0.2f;     // percepatan & berhenti lebih cepat (responsif)
+        [SerializeField] private float maxMoveSpeed = 35f;
+        [SerializeField] private float inertiaSmooth = 0.3f;
+        [SerializeField] private float inertiaFollowStrength = 2f;
+
+        [Title("Boost Start")]
+        [SerializeField] private float boostStartThreshold = 5f;
+        [SerializeField] private float boostStartMultiplier = 2f;
 
         [Title("Rotation")]
-        [SerializeField] private float maxAngularSpeed = 300f;   // putar lebih cepat
-        [SerializeField] private float bankAngle = 50f;          // tilt cukup dramatis biar enak dilihat
-        [SerializeField] private float bankLerpSpeed = 8f;       // tilt cepat ngejar arah belok
+        [SerializeField] private float maxAngularSpeed = 200f;
+        [SerializeField] private float bankAngle = 40f;
+        [SerializeField] private float bankLerpSpeed = 4f;
 
         [Title("Dash")]
-        [SerializeField] private float dashSpeed = 120f;         // dash lebih kencang
-        [SerializeField] private float dashDuration = 0.25f;     // dash singkat (nge-blink)
-        [SerializeField] private float dashCooldown = 1f;        // bisa lebih sering dipakai
+        [SerializeField] private float dashSpeed = 80f;
+        [SerializeField] private float dashDuration = 0.4f;
+        [SerializeField] private float dashCooldown = 1.8f;
         [SerializeField] private float dashVfxStopThreshold = 0.2f;
 
         [Title("Collision / Knockback")]
         [SerializeField] private int obstacleLayerIndex = 8;
-        [SerializeField] private float collisionFreezeTime = 0.25f; // lebih singkat biar flow nggak terlalu putus
-        [SerializeField] private float collisionCooldown = 0.12f;
-        [SerializeField] private float postCollisionIdleDelay = 0.4f;
-        [SerializeField] private Vector3 maxKnockbackTilt = new Vector3(20f, 12f, 18f);
-        [SerializeField] private float knockbackTiltLerpSpeed = 7f;  // tilt recovery lebih cepat
-        [SerializeField] private float knockbackForceMultiplier = 0.6f;
-        [SerializeField] private float knockbackDecaySpeed = 9f;     // knockback cepat hilang
+        [SerializeField] private float collisionFreezeTime = 0.5f;
+        [SerializeField] private float collisionCooldown = 0.2f;
+        [SerializeField] private float postCollisionIdleDelay = 0.7f;
+        [SerializeField] private Vector3 maxKnockbackTilt = new(30f, 20f, 25f);
+        [SerializeField] private float knockbackTiltLerpSpeed = 4f;
+        [SerializeField] private float knockbackForceMultiplier = 0.8f;
+        [SerializeField] private float knockbackDecaySpeed = 6f;
         [SerializeField] private float knockbackTiltEndThreshold = 1f;
-        [SerializeField] private float inputCancelTiltThreshold = 6f;
+        [SerializeField] private float inputCancelTiltThreshold = 8f;
 
         [Title("Idle Bobbing")]
-        [SerializeField] private float bobAmplitude = 0.12f;     // lebih kecil biar nggak ganggu kecepatan
-        [SerializeField] private float bobFrequency = 2.5f;      // sedikit lebih cepat
-        [SerializeField] private float bobSmooth = 8f;           // cepat mengikuti gerakan
+        [SerializeField] private float bobAmplitude = 0.18f;
+        [SerializeField] private float bobFrequency = 1.5f;
+        [SerializeField] private float bobSmooth = 5f;
 
         [Title("Visual")]
         [SerializeField] private Transform shipVisual;
@@ -57,36 +59,29 @@ namespace Iztar.ShipModule
 
         #region Private State
 
-        // Input
         private Vector2 moveInput;
         private bool hasInput;
 
-        // Speed/Rotation
+        private Vector3 currentVelocity;
         private float currentSpeed;
-        private float currentAngularSpeed;
         private float speedVelocity;
-        private float angularVelocity;
-        private Quaternion visualBaseLocalRot;
-
-        // Visual
         private float targetYaw;
+
         private float currentBank;
         private float bobOffsetY;
+        private Quaternion visualBaseLocalRot;
         private Vector3 visualBaseLocalPos;
 
-        // Dash
         private float dashTimer;
         private float dashCooldownTimer;
         private bool isDashing;
 
-        // Collision
         private float collisionFreezeTimer;
         private float collisionCooldownTimer;
         private float postCollisionIdleTimer;
         private bool isColliding;
         private bool vfxPlaying;
 
-        // Knockback
         private Vector3 knockbackDir;
         private float knockbackForce;
         private bool isKnockback;
@@ -141,11 +136,11 @@ namespace Iztar.ShipModule
 
             HandleThrustVfx();
             HandleMovement();
-            HandleRotation();
             HandleBanking();
             HandleVisuals();
             HandleDash();
         }
+
         private void OnEnable()
         {
             StopVfx(dashVfx, true);
@@ -161,149 +156,6 @@ namespace Iztar.ShipModule
                 OnCollision?.Invoke(currentSpeed);
                 BeginCollision(other);
             }
-        }
-
-
-        #endregion
-
-        #region Knockback
-
-        private void BeginCollision(Collider other)
-        {
-            isColliding = true;
-
-            knockbackDir = transform.position - other.transform.position;
-            knockbackDir.y = 0f;
-            knockbackDir = knockbackDir.sqrMagnitude > 1e-4f ? knockbackDir.normalized : -transform.forward;
-
-            float dashBonus = isDashing ? 2f : 1f;
-            knockbackForce = Mathf.Clamp(currentSpeed * knockbackForceMultiplier * dashBonus, 0f, 80f);
-
-            Vector3 localKnockback = transform.InverseTransformDirection(knockbackDir);
-            float speedFactor = Mathf.Clamp01(currentSpeed / maxMoveSpeed);
-            float tiltMultiplier = 1f + speedFactor * (isDashing ? 1.5f : 0.5f);
-
-            float tiltX = Mathf.Clamp(-Mathf.Abs(localKnockback.z) * maxKnockbackTilt.x * tiltMultiplier, -maxKnockbackTilt.x * 2f, 0f);
-            float tiltY = Mathf.Clamp(localKnockback.x * maxKnockbackTilt.y * tiltMultiplier, -maxKnockbackTilt.y * 2f, maxKnockbackTilt.y * 2f);
-            float tiltZ = Mathf.Clamp(-localKnockback.x * maxKnockbackTilt.z * 0.5f * tiltMultiplier, -maxKnockbackTilt.z * 2f, maxKnockbackTilt.z * 2f);
-
-            knockbackTiltEuler = new Vector3(tiltX, tiltY, tiltZ);
-            currentKnockbackTiltEuler = Vector3.zero;
-
-            isKnockback = true;
-            currentSpeed = 0f;
-            currentAngularSpeed = 0f;
-
-            collisionFreezeTimer = collisionFreezeTime;
-            collisionCooldownTimer = collisionCooldown;
-
-            isDashing = false;
-            dashTimer = 0f;
-            StopVfx(dashVfx);
-            StopVfx(thrustVfx);
-            vfxPlaying = false;
-
-            knockbackSpinAxis = (transform.position - other.transform.position).normalized;
-            if (knockbackSpinAxis == Vector3.zero)
-                knockbackSpinAxis = Random.onUnitSphere;
-
-            knockbackSpinSpeed = currentSpeed * 5f * dashBonus;
-        }
-
-        private void HandleKnockback()
-        {
-            if (knockbackForce > 0.05f)
-                ApplyKnockbackMovement();
-            else
-                RecoverFromKnockback();
-        }
-
-        private void ApplyKnockbackMovement()
-        {
-            float effectiveDecay = isDashing ? knockbackDecaySpeed * 0.5f : knockbackDecaySpeed;
-            knockbackForce = Mathf.Lerp(knockbackForce, 0f, Time.deltaTime * effectiveDecay);
-            transform.position += knockbackDir * knockbackForce * Time.deltaTime;
-
-            float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed;
-            currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, knockbackTiltEuler, Time.deltaTime * effectiveLerp);
-
-            ApplyVisualTilt();
-            ApplyKnockbackSpin();
-        }
-
-        private void RecoverFromKnockback()
-        {
-            float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed * 1.1f;
-            currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, Vector3.zero, Time.deltaTime * effectiveLerp);
-
-            ApplyVisualTilt();
-            ApplyKnockbackSpin();
-
-            float tiltMag = currentKnockbackTiltEuler.magnitude;
-            bool tiltCloseEnough = tiltMag <= knockbackTiltEndThreshold;
-            bool playerWantsControl = hasInput && tiltMag <= inputCancelTiltThreshold;
-
-            if (tiltCloseEnough || playerWantsControl)
-                EndKnockback();
-        }
-
-        private void ApplyKnockbackSpin()
-        {
-            if (knockbackSpinSpeed > 0.1f)
-            {
-                transform.Rotate(knockbackSpinAxis * knockbackSpinSpeed * Time.deltaTime, Space.Self);
-                knockbackSpinSpeed = Mathf.Lerp(knockbackSpinSpeed, 0f, Time.deltaTime * 2f);
-            }
-        }
-
-        private void EndKnockback()
-        {
-            isKnockback = false;
-            knockbackForce = 0f;
-            knockbackSpinSpeed = 0f;
-
-            isColliding = false;
-            collisionFreezeTimer = 0f;
-            postCollisionIdleTimer = 0f;
-
-            // Reset tilt sepenuhnya
-            currentKnockbackTiltEuler = Vector3.zero;
-            if (shipVisual != null)
-                shipVisual.localRotation = visualBaseLocalRot;
-
-            if (hasInput && thrustVfx != null && !vfxPlaying)
-            {
-                thrustVfx.Play(true);
-                vfxPlaying = true;
-            }
-        }
-
-        #endregion
-
-        #region Helpers
-
-        private void UpdateTimers()
-        {
-            if (collisionCooldownTimer > 0f) collisionCooldownTimer -= Time.deltaTime;
-            if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
-            if (collisionFreezeTimer > 0f)
-            {
-                collisionFreezeTimer -= Time.deltaTime;
-                if (collisionFreezeTimer <= 0f)
-                {
-                    isColliding = false;
-                    currentSpeed = 0f;
-                    postCollisionIdleTimer = postCollisionIdleDelay;
-                }
-            }
-            else if (postCollisionIdleTimer > 0f)
-                postCollisionIdleTimer -= Time.deltaTime;
-        }
-
-        private void StopVfx(ParticleSystem vfx, bool clear = false)
-        {
-            if (vfx == null) return;
-            vfx.Stop(true, clear ? ParticleSystemStopBehavior.StopEmittingAndClear : ParticleSystemStopBehavior.StopEmitting);
         }
 
         #endregion
@@ -331,47 +183,57 @@ namespace Iztar.ShipModule
 
         #endregion
 
-        #region Movement
+        #region Movement with Inertia
 
+        [SerializeField] private ParticleSystem boostStartVfx;
         private void HandleMovement()
         {
-            float currentYaw = transform.eulerAngles.y;
-            float yawDiff = Mathf.DeltaAngle(currentYaw, targetYaw);
+            Vector3 targetVelocity = Vector3.zero;
 
             if (hasInput)
             {
+                // Arah gerakan
                 Vector3 dir = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
-                targetYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+                if (dir != Vector3.zero)
+                    targetYaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
 
-                float targetSpeed = Mathf.Abs(yawDiff) > turnDragThreshold ? Mathf.Max(0f, maxMoveSpeed - turnDrag) : maxMoveSpeed;
-                currentSpeed = Mathf.SmoothDamp(currentSpeed, targetSpeed, ref speedVelocity, inertiaSmooth);
-            }
-            else
-            {
-                targetYaw = currentYaw;
-                currentSpeed = Mathf.SmoothDamp(currentSpeed, 0f, ref speedVelocity, inertiaSmooth);
-            }
+                // Hitung target kecepatan
+                float targetSpeed = maxMoveSpeed;
 
-            transform.position += currentSpeed * Time.deltaTime * transform.forward;
-        }
+                // 🚀 Boost Start
+                if (currentSpeed < boostStartThreshold)
+                {
+                    targetSpeed *= boostStartMultiplier;
+                    boostStartVfx?.Play(true);
+                }
+                else
+                {
+                    boostStartVfx?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                }
 
-        private void HandleRotation()
-        {
-            float currentYaw = transform.eulerAngles.y;
-
-            if (!hasInput)
-            {
-                targetYaw = currentYaw;
-                currentAngularSpeed = 0f;
-                return;
+                targetVelocity = transform.forward * targetSpeed;
             }
 
-            float yawDiff = Mathf.DeltaAngle(currentYaw, targetYaw);
-            float targetAngular = Mathf.Abs(yawDiff) > 0.1f ? maxAngularSpeed : 0f;
+            // Lerp velocity (inertia)
+            currentVelocity = Vector3.Lerp(
+                currentVelocity,
+                targetVelocity,
+                Time.deltaTime * inertiaFollowStrength
+            );
 
-            currentAngularSpeed = Mathf.SmoothDamp(currentAngularSpeed, targetAngular, ref angularVelocity, inertiaSmooth);
-            float newYaw = Mathf.MoveTowardsAngle(currentYaw, targetYaw, currentAngularSpeed * Time.deltaTime);
-            transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
+            // 🔄 Selalu sinkron speed dengan velocity
+            currentSpeed = currentVelocity.magnitude;
+
+            // Rotasi menuju target arah
+            Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRot,
+                maxAngularSpeed * Time.deltaTime
+            );
+
+            // Update posisi
+            transform.position += currentVelocity * Time.deltaTime;
         }
 
         private void HandleBanking()
@@ -445,17 +307,163 @@ namespace Iztar.ShipModule
             float dashCurve = Mathf.Sin(t * Mathf.PI);
 
             float targetSpeed = maxMoveSpeed + dashCurve * dashSpeed;
-            currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 10f);
+            Vector3 dashVelocity = transform.forward * targetSpeed;
+
+            currentVelocity = Vector3.Lerp(currentVelocity, dashVelocity, Time.deltaTime * 10f);
+
+            currentSpeed = currentVelocity.magnitude;
 
             if (dashTimer <= 0f)
             {
                 isDashing = false;
-                StopVfx(dashVfx, true);
+                StopVfx(dashVfx);
             }
             else if (dashTimer <= dashVfxStopThreshold)
             {
                 StopVfx(dashVfx);
             }
+        }
+
+        #endregion
+
+        #region Knockback
+
+        private void BeginCollision(Collider other)
+        {
+            isColliding = true;
+
+            knockbackDir = transform.position - other.transform.position;
+            knockbackDir.y = 0f;
+            knockbackDir = knockbackDir.sqrMagnitude > 1e-4f ? knockbackDir.normalized : -transform.forward;
+
+            float dashBonus = isDashing ? 2f : 1f;
+            knockbackForce = Mathf.Clamp(currentSpeed * knockbackForceMultiplier * dashBonus, 0f, 80f);
+
+            Vector3 localKnockback = transform.InverseTransformDirection(knockbackDir);
+            float speedFactor = Mathf.Clamp01(currentSpeed / maxMoveSpeed);
+            float tiltMultiplier = 1f + speedFactor * (isDashing ? 1.5f : 0.5f);
+
+            float tiltX = Mathf.Clamp(-Mathf.Abs(localKnockback.z) * maxKnockbackTilt.x * tiltMultiplier, -maxKnockbackTilt.x * 2f, 0f);
+            float tiltY = Mathf.Clamp(localKnockback.x * maxKnockbackTilt.y * tiltMultiplier, -maxKnockbackTilt.y * 2f, maxKnockbackTilt.y * 2f);
+            float tiltZ = Mathf.Clamp(-localKnockback.x * maxKnockbackTilt.z * 0.5f * tiltMultiplier, -maxKnockbackTilt.z * 2f, maxKnockbackTilt.z * 2f);
+
+            knockbackTiltEuler = new Vector3(tiltX, tiltY, tiltZ);
+            currentKnockbackTiltEuler = Vector3.zero;
+
+            isKnockback = true;
+            currentSpeed = 0f;
+
+            collisionFreezeTimer = collisionFreezeTime;
+            collisionCooldownTimer = collisionCooldown;
+
+            isDashing = false;
+            dashTimer = 0f;
+            StopVfx(dashVfx);
+            StopVfx(thrustVfx);
+            vfxPlaying = false;
+
+            knockbackSpinAxis = (transform.position - other.transform.position).normalized;
+            if (knockbackSpinAxis == Vector3.zero)
+                knockbackSpinAxis = Random.onUnitSphere;
+
+            knockbackSpinSpeed = currentSpeed * 5f * dashBonus;
+        }
+
+        private void HandleKnockback()
+        {
+            if (knockbackForce > 0.05f)
+                ApplyKnockbackMovement();
+            else
+                RecoverFromKnockback();
+        }
+
+        private void ApplyKnockbackMovement()
+        {
+            float effectiveDecay = isDashing ? knockbackDecaySpeed * 0.5f : knockbackDecaySpeed;
+            knockbackForce = Mathf.Lerp(knockbackForce, 0f, Time.deltaTime * effectiveDecay);
+            transform.position += knockbackDir * knockbackForce * Time.deltaTime;
+
+            float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed;
+            currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, knockbackTiltEuler, Time.deltaTime * effectiveLerp);
+
+            ApplyVisualTilt();
+            ApplyKnockbackSpin();
+        }
+
+        private void RecoverFromKnockback()
+        {
+            float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed * 1.1f;
+            currentKnockbackTiltEuler = Vector3.Lerp(currentKnockbackTiltEuler, Vector3.zero, Time.deltaTime * effectiveLerp);
+
+            ApplyVisualTilt();
+            ApplyKnockbackSpin();
+
+            float tiltMag = currentKnockbackTiltEuler.magnitude;
+            bool tiltCloseEnough = tiltMag <= knockbackTiltEndThreshold;
+            bool playerWantsControl = hasInput && tiltMag <= inputCancelTiltThreshold;
+
+            if (tiltCloseEnough || playerWantsControl)
+                EndKnockback();
+        }
+
+        private void ApplyKnockbackSpin()
+        {
+            if (knockbackSpinSpeed > 0.1f)
+            {
+                transform.Rotate(knockbackSpinAxis * knockbackSpinSpeed * Time.deltaTime, Space.Self);
+                knockbackSpinSpeed = Mathf.Lerp(knockbackSpinSpeed, 0f, Time.deltaTime * 2f);
+            }
+        }
+
+        private void EndKnockback()
+        {
+            isKnockback = false;
+            knockbackForce = 0f;
+            knockbackSpinSpeed = 0f;
+
+            isColliding = false;
+            collisionFreezeTimer = 0f;
+            postCollisionIdleTimer = 0f;
+
+            currentKnockbackTiltEuler = Vector3.zero;
+            if (shipVisual != null)
+                shipVisual.localRotation = visualBaseLocalRot;
+
+            if (hasInput && thrustVfx != null && !vfxPlaying)
+            {
+                thrustVfx.Play(true);
+                vfxPlaying = true;
+            }
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private void UpdateTimers()
+        {
+            if (collisionCooldownTimer > 0f) collisionCooldownTimer -= Time.deltaTime;
+            if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
+            if (collisionFreezeTimer > 0f)
+            {
+                collisionFreezeTimer -= Time.deltaTime;
+                if (collisionFreezeTimer <= 0f)
+                {
+                    isColliding = false;
+                    currentSpeed = 0f;
+                    postCollisionIdleTimer = postCollisionIdleDelay;
+                }
+            }
+            else if (postCollisionIdleTimer > 0f)
+            {
+                postCollisionIdleTimer -= Time.deltaTime;
+            }
+        }
+
+        private void StopVfx(ParticleSystem vfx, bool clear = false)
+        {
+            if (vfx == null) return;
+            vfx.Stop(true, clear ? ParticleSystemStopBehavior.StopEmittingAndClear : ParticleSystemStopBehavior.StopEmitting);
         }
 
         #endregion

@@ -10,15 +10,23 @@ public class EnemyMovement : MonoBehaviour
     private Transform player;
     private Rigidbody rb;
 
-    void Start()
+    private void Awake()
     {
         rb = GetComponent<Rigidbody>();
         rb.interpolation = RigidbodyInterpolation.Interpolate; // biar smooth
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ; // jangan miring
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
     }
 
-    void FixedUpdate()
+    private void Start()
+    {
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+    }
+    private void OnEnable()
+    {
+        
+    }
+
+    private void FixedUpdate()
     {
         if (player == null) return;
 
@@ -46,7 +54,7 @@ public class EnemyMovement : MonoBehaviour
         }
     }
 
-    void OnDrawGizmosSelected()
+    private void OnDrawGizmosSelected()
     {
         if (player == null) return;
         Gizmos.color = Color.red;
