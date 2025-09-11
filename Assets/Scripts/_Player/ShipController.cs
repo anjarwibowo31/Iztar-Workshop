@@ -14,39 +14,39 @@ namespace Iztar.ShipModule
         public event Action<float> OnCollision;
 
         #region Inspector Fields
-
         [Title("Movement")]
-        [SerializeField] private float maxMoveSpeed = 40f;
-        [SerializeField] private float turnDrag = 12f;
-        [SerializeField] private float turnDragThreshold = 45f;
-        [SerializeField] private float inertiaSmooth = 0.3f;
+        [SerializeField] private float maxMoveSpeed = 40f;       // lebih cepat
+        [SerializeField] private float turnDrag = 4f;            // drag dikurangi biar tetap lincah saat belok
+        [SerializeField] private float turnDragThreshold = 25f;  // penalti belok baru terasa di sudut tajam
+        [SerializeField] private float inertiaSmooth = 0.2f;     // percepatan & berhenti lebih cepat (responsif)
 
         [Title("Rotation")]
-        [SerializeField] private float maxAngularSpeed = 270f;
-        [SerializeField] private float bankAngle = 60f;
-        [SerializeField] private float bankLerpSpeed = 6f;
+        [SerializeField] private float maxAngularSpeed = 300f;   // putar lebih cepat
+        [SerializeField] private float bankAngle = 50f;          // tilt cukup dramatis biar enak dilihat
+        [SerializeField] private float bankLerpSpeed = 8f;       // tilt cepat ngejar arah belok
 
         [Title("Dash")]
-        [SerializeField] private float dashSpeed = 100f;
-        [SerializeField] private float dashDuration = 0.3f;
-        [SerializeField] private float dashCooldown = 1f;
+        [SerializeField] private float dashSpeed = 120f;         // dash lebih kencang
+        [SerializeField] private float dashDuration = 0.25f;     // dash singkat (nge-blink)
+        [SerializeField] private float dashCooldown = 1f;        // bisa lebih sering dipakai
         [SerializeField] private float dashVfxStopThreshold = 0.2f;
 
         [Title("Collision / Knockback")]
-        [SerializeField] private float collisionFreezeTime = 0.5f;
+        [SerializeField] private int obstacleLayerIndex = 8;
+        [SerializeField] private float collisionFreezeTime = 0.25f; // lebih singkat biar flow nggak terlalu putus
         [SerializeField] private float collisionCooldown = 0.12f;
-        [SerializeField] private float postCollisionIdleDelay = 0.5f;
-        [SerializeField] private Vector3 maxKnockbackTilt = new Vector3(20f, 10f, 15f);
-        [SerializeField] private float knockbackTiltLerpSpeed = 6f;
-        [SerializeField] private float knockbackForceMultiplier = 0.5f;
-        [SerializeField] private float knockbackDecaySpeed = 8f;
+        [SerializeField] private float postCollisionIdleDelay = 0.4f;
+        [SerializeField] private Vector3 maxKnockbackTilt = new Vector3(20f, 12f, 18f);
+        [SerializeField] private float knockbackTiltLerpSpeed = 7f;  // tilt recovery lebih cepat
+        [SerializeField] private float knockbackForceMultiplier = 0.6f;
+        [SerializeField] private float knockbackDecaySpeed = 9f;     // knockback cepat hilang
         [SerializeField] private float knockbackTiltEndThreshold = 1f;
-        [SerializeField] private float inputCancelTiltThreshold = 8f;
+        [SerializeField] private float inputCancelTiltThreshold = 6f;
 
         [Title("Idle Bobbing")]
-        [SerializeField] private float bobAmplitude = 0.2f;
-        [SerializeField] private float bobFrequency = 2f;
-        [SerializeField] private float bobSmooth = 5f;
+        [SerializeField] private float bobAmplitude = 0.12f;     // lebih kecil biar nggak ganggu kecepatan
+        [SerializeField] private float bobFrequency = 2.5f;      // sedikit lebih cepat
+        [SerializeField] private float bobSmooth = 8f;           // cepat mengikuti gerakan
 
         [Title("Visual")]
         [SerializeField] private Transform shipVisual;
@@ -155,12 +155,14 @@ namespace Iztar.ShipModule
         private void OnTriggerEnter(Collider other)
         {
             if (collisionCooldownTimer > 0f || collisionFreezeTimer > 0f) return;
-            if (other.CompareTag("Obstacle"))
+
+            if (other.gameObject.layer == obstacleLayerIndex)
             {
                 OnCollision?.Invoke(currentSpeed);
                 BeginCollision(other);
             }
         }
+
 
         #endregion
 

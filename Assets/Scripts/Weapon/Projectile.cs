@@ -11,8 +11,10 @@ public class Projectile : MonoBehaviour
 
     private Vector3 direction;
     private float timer;
-
     private ObjectPool<Projectile> pool;
+
+    // Tambahan flag
+    private bool isReleased;
 
     private void Update()
     {
@@ -28,6 +30,7 @@ public class Projectile : MonoBehaviour
     private void OnEnable()
     {
         timer = lifeTime;
+        isReleased = false; // reset setiap kali projectile diambil dari pool
     }
 
     private void OnTriggerEnter(Collider other)
@@ -56,13 +59,15 @@ public class Projectile : MonoBehaviour
 
     private void ReleaseToPool()
     {
+        if (isReleased) return; // cegah double release
+        isReleased = true;
+
         if (pool != null)
         {
             pool.Release(this);
         }
         else
         {
-            // fallback kalau pool belum diset
             Destroy(gameObject);
         }
     }
