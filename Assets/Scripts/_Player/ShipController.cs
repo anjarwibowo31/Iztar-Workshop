@@ -1,5 +1,6 @@
 ﻿using Iztar.Manager;
 using Sirenix.OdinInspector;
+using Sirenix.Utilities.Editor;
 using System;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -10,6 +11,35 @@ namespace Iztar.ShipModule
     {
         public static ShipController Instance { get; private set; }
         public event Action<float> OnCollision;
+
+#if UNITY_EDITOR // Debugger
+        #region Debug Section (Odin)
+
+        // Tampilkan debug hanya saat FoldoutGroup "Debug" dibuka
+        [FoldoutGroup("Debug", Expanded = false), ShowInInspector, ReadOnly, PropertyOrder(-10)]
+        private float CurrentSpeed => currentSpeed;
+
+        [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
+        private Vector3 CurrentVelocity => currentVelocity;
+
+        [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
+        private bool IsDashing => isDashing;
+
+        [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
+        private bool IsKnockback => isKnockback;
+
+        [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
+        private bool IsColliding => isColliding;
+
+        // Paksa inspector Odin refresh realtime saat Play Mode
+        [OnInspectorGUI, PropertyOrder(-11)]
+        private void ForceRepaint()
+        {
+            GUIHelper.RequestRepaint();
+        }
+
+        #endregion
+#endif
 
         #region Inspector Fields
 
@@ -54,6 +84,7 @@ namespace Iztar.ShipModule
         [SerializeField] private Transform shipVisual;
         [SerializeField] private ParticleSystem thrustVfx;
         [SerializeField] private ParticleSystem dashVfx;
+        [SerializeField] private ParticleSystem boostStartVfx;
 
         #endregion
 
@@ -64,7 +95,6 @@ namespace Iztar.ShipModule
 
         private Vector3 currentVelocity;
         private float currentSpeed;
-        private float speedVelocity;
         private float targetYaw;
 
         private float currentBank;
@@ -185,7 +215,6 @@ namespace Iztar.ShipModule
 
         #region Movement with Inertia
 
-        [SerializeField] private ParticleSystem boostStartVfx;
         private void HandleMovement()
         {
             Vector3 targetVelocity = Vector3.zero;
@@ -221,7 +250,7 @@ namespace Iztar.ShipModule
                 Time.deltaTime * inertiaFollowStrength
             );
 
-            // 🔄 Selalu sinkron speed dengan velocity
+            // Selalu sinkron speed dengan velocity
             currentSpeed = currentVelocity.magnitude;
 
             // Rotasi menuju target arah
@@ -316,7 +345,7 @@ namespace Iztar.ShipModule
             if (dashTimer <= 0f)
             {
                 isDashing = false;
-                StopVfx(dashVfx);
+                StopVfx(dashVfx, true);
             }
             else if (dashTimer <= dashVfxStopThreshold)
             {
@@ -351,6 +380,9 @@ namespace Iztar.ShipModule
             currentKnockbackTiltEuler = Vector3.zero;
 
             isKnockback = true;
+
+            // Reset velocity
+            currentVelocity = Vector3.zero;
             currentSpeed = 0f;
 
             collisionFreezeTimer = collisionFreezeTime;
@@ -426,6 +458,7 @@ namespace Iztar.ShipModule
             postCollisionIdleTimer = 0f;
 
             currentKnockbackTiltEuler = Vector3.zero;
+
             if (shipVisual != null)
                 shipVisual.localRotation = visualBaseLocalRot;
 
@@ -435,6 +468,7 @@ namespace Iztar.ShipModule
                 vfxPlaying = true;
             }
         }
+
 
         #endregion
 
