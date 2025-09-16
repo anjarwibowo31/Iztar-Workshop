@@ -200,6 +200,8 @@ namespace Iztar.ShipModule
 
         private void HandleDashInput()
         {
+            // BUAT SYSTEM DASH BARU DISINI, DRAINING DASH
+
             if (InputManager.Instance == null) return;
 
             if (InputManager.Instance.ConsumeDashPressed() && !isDashing && dashCooldownTimer <= 0f)
