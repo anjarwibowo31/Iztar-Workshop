@@ -21,7 +21,7 @@ public class CameraShake : MonoBehaviour
 
     private void Awake()
     {
-        noise = GetComponent<CinemachineBasicMultiChannelPerlin>();
+        noise = GetComponentInChildren<CinemachineBasicMultiChannelPerlin>();
     }
 
     private void Start()
