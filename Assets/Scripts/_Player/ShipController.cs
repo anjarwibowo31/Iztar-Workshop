@@ -149,6 +149,11 @@ namespace Iztar.ShipModule
             isDashing = false;
         }
 
+        private void Start()
+        {
+            GameManager.Instance.ActiveShip = this;
+        }
+
         private void Update()
         {
             UpdateTimers();

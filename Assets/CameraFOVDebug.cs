@@ -10,6 +10,6 @@ public class CameraFOVDebug : MonoBehaviour
 
     public void UpdateFOVText(int value)
     {
-        debugText.text = "Camera FOV: " + value;
+        debugText.text = "| Camera FOV: " + value;
     }
 }
