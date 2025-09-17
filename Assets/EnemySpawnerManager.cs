@@ -47,17 +47,17 @@ public class EnemySpawnerManager : MonoBehaviour
 
     private Vector3[] GetFrustumPolygon(Camera cam, float planeY)
     {
-        Plane p = new Plane(Vector3.up, new Vector3(0, planeY, 0));
+        Plane p = new(Vector3.up, new Vector3(0, planeY, 0));
 
         Vector2[] corners = new Vector2[]
         {
-            new Vector2(0f, 0f),
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 0f)
+            new(0f, 0f),
+            new(0f, 1f),
+            new(1f, 1f),
+            new(1f, 0f)
         };
 
-        List<Vector3> hits = new List<Vector3>();
+        List<Vector3> hits = new();
         foreach (var c in corners)
         {
             Ray r = cam.ViewportPointToRay(new Vector3(c.x, c.y, 0f));
@@ -95,7 +95,7 @@ public class EnemySpawnerManager : MonoBehaviour
 
         // arah keluar = normal sisi (2D XZ)
         Vector2 edgeDir = new Vector2(b.x - a.x, b.z - a.z).normalized;
-        Vector2 outward = new Vector2(-edgeDir.y, edgeDir.x); // rotasi 90 derajat
+        Vector2 outward = new(-edgeDir.y, edgeDir.x); // rotasi 90 derajat
         // pastikan outward benar-benar keluar (cek dengan center polygon)
         Vector3 polyCenter = Vector3.zero;
         foreach (var v in polygon) polyCenter += v;
@@ -106,7 +106,7 @@ public class EnemySpawnerManager : MonoBehaviour
             outward = -outward;
 
         // spawn point = titik di edge + outward * radius
-        Vector3 spawn = new Vector3(
+        Vector3 spawn = new(
             pointOnEdge.x + outward.x * radius,
             planeY,
             pointOnEdge.z + outward.y * radius
