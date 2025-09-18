@@ -29493,7 +29493,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60e7f3b08e0375a489394db0c8e45ba4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxMoveSpeed: 35
+  maxMoveSpeed: 25
   inertiaSmooth: 0.4
   inertiaFollowStrength: 1
   boostStartThreshold: 10
@@ -29501,7 +29501,7 @@ MonoBehaviour:
   maxAngularSpeed: 180
   bankAngle: 65
   bankLerpSpeed: 5
-  dashSpeed: 60
+  dashSpeed: 25
   dashDuration: 2
   dashCooldown: 4
   dashVfxStopThreshold: 1

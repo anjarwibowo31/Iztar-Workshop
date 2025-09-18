@@ -109,7 +109,8 @@ namespace Iztar.Manager
             Instance = this;
         }
 
-        // Public API
+        // Public API ----------------------
+
         public Vector2 GetMoveInput()
         {
             Vector2 combined = systemMovementInput;
@@ -134,6 +135,7 @@ namespace Iztar.Manager
             return Vector2.zero;
         }
 
+        // OneShot (sekali pencet)
         public bool ConsumeDashPressed()
         {
             if (dashPressed)
@@ -143,8 +145,24 @@ namespace Iztar.Manager
             }
             return false;
         }
+
+        public bool IsDashHeld()
+        {
+            return shipInputActions.ShipController.Dash.IsPressed();
+        }
+
+        public bool IsDashPressedThisFrame()
+        {
+            return shipInputActions.ShipController.Dash.WasPressedThisFrame();
+        }
+
+        public bool IsDashReleased()
+        {
+            return shipInputActions.ShipController.Dash.WasReleasedThisFrame();
+        }
     }
 }
+
 
 #region OLD_SCRIPT
 //using System;

@@ -50,6 +50,8 @@ public class TwinGunWeapon : Weapon
 
     private void HandleShooting()
     {
+        if (!WeaponActive) return;
+
         if (fireCooldown > 0f)
         {
             fireCooldown -= Time.deltaTime;

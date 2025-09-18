@@ -58,10 +58,18 @@ namespace Iztar.ShipModule
         [SerializeField] private float bankLerpSpeed = 4f;
 
         [Title("Dash")]
-        [SerializeField] private float dashSpeed = 80f;
-        [SerializeField] private float dashDuration = 0.4f;
-        [SerializeField] private float dashCooldown = 1.8f;
-        [SerializeField] private float dashVfxStopThreshold = 0.2f;
+        // Mode
+        [SerializeField] private bool isUsingOneShot = true;
+        // One-Shot Mode
+        [BoxGroup("One-Shot"), SerializeField] private float dashSpeed = 80f;
+        [BoxGroup("One-Shot"), SerializeField] private float dashDuration = 0.4f;
+        [BoxGroup("One-Shot"), SerializeField] private float dashCooldown = 1.8f;
+        [BoxGroup("One-Shot"), SerializeField] private float dashVfxStopThreshold = 0.2f;
+        // Draining Mode
+        [BoxGroup("Draining"), SerializeField] private float dashEnergyMax = 3f;
+        [BoxGroup("Draining"), SerializeField] private float dashEnergyDrainRate = 1f;
+        [BoxGroup("Draining"), SerializeField] private float dashEnergyRegenRate = 0.6f;
+        [BoxGroup("Draining"), SerializeField] private float dashEnergyRegenDelay = 1f;
 
         [Title("Collision / Knockback")]
         [SerializeField] private int obstacleLayerIndex = 8;
@@ -105,6 +113,8 @@ namespace Iztar.ShipModule
         private float dashTimer;
         private float dashCooldownTimer;
         private bool isDashing;
+        private float dashEnergy;
+        private float dashEnergyRegenTimer;
 
         private float collisionFreezeTimer;
         private float collisionCooldownTimer;
@@ -147,6 +157,9 @@ namespace Iztar.ShipModule
             hasInput = false;
             vfxPlaying = false;
             isDashing = false;
+
+            dashEnergy = dashEnergyMax;
+            dashEnergyRegenTimer = 0f;
         }
 
         private void Start()
@@ -167,13 +180,22 @@ namespace Iztar.ShipModule
             if (isColliding) return;
 
             HandleMoveInput();
-            HandleDashInput();
+
+            if (isUsingOneShot)
+            {
+                HandleDashOneShotInput();
+                HandleDashOneShotMovement();
+            }
+            else
+            {
+                HandleDashDrainingInput();
+                HandleDashDrainingMovement();
+            }
 
             HandleThrustVfx();
             HandleMovement();
             HandleBanking();
             HandleVisuals();
-            HandleDash();
         }
 
         private void OnEnable()
@@ -203,7 +225,7 @@ namespace Iztar.ShipModule
             hasInput = moveInput.sqrMagnitude > 0.01f;
         }
 
-        private void HandleDashInput()
+        private void HandleDashOneShotInput()
         {
             // BUAT SYSTEM DASH BARU DISINI, DRAINING DASH
 
@@ -217,10 +239,46 @@ namespace Iztar.ShipModule
                 if (dashVfx != null) dashVfx.Play(true);
             }
         }
+        private void HandleDashDrainingInput()
+        {
+            if (InputManager.Instance == null) return;
+
+            bool dashHeld = InputManager.Instance.IsDashHeld();
+            // NOTE: pastikan InputManager punya method GetDashHeld() (cek tombol masih ditekan)
+
+            if (dashHeld && dashEnergy > 0f)
+            {
+                if (!isDashing)
+                {
+                    isDashing = true;
+                    if (dashVfx != null) dashVfx.Play(true);
+                }
+
+                dashEnergy -= dashEnergyDrainRate * Time.deltaTime;
+                dashEnergy = Mathf.Max(0f, dashEnergy);
+                dashEnergyRegenTimer = dashEnergyRegenDelay;
+            }
+            else
+            {
+                if (isDashing)
+                {
+                    isDashing = false;
+                    StopVfx(dashVfx, true);
+                }
+
+                if (dashEnergy < dashEnergyMax)
+                {
+                    if (dashEnergyRegenTimer > 0f)
+                        dashEnergyRegenTimer -= Time.deltaTime;
+                    else
+                        dashEnergy += dashEnergyRegenRate * Time.deltaTime;
+                }
+            }
+        }
 
         #endregion
 
-        #region Movement with Inertia
+        #region Movement
 
         private void HandleMovement()
         {
@@ -236,7 +294,7 @@ namespace Iztar.ShipModule
                 // Hitung target kecepatan
                 float targetSpeed = maxMoveSpeed;
 
-                // 🚀 Boost Start
+                //  Boost Start
                 if (currentSpeed < boostStartThreshold)
                 {
                     targetSpeed *= boostStartMultiplier;
@@ -282,59 +340,9 @@ namespace Iztar.ShipModule
 
         #endregion
 
-        #region Visuals
+        #region Dash
 
-        private void HandleVisuals()
-        {
-            if (shipVisual == null) return;
-
-            ApplyVisualTilt();
-
-            float idleFactor = 1f - Mathf.Clamp01(currentSpeed / maxMoveSpeed);
-            float targetOffset = 0f;
-
-            if (postCollisionIdleTimer <= 0f)
-            {
-                targetOffset = Mathf.Sin(Time.time * bobFrequency) * bobAmplitude * idleFactor;
-                if (currentSpeed < 0.1f)
-                    targetOffset = Mathf.Sin(Time.time * bobFrequency) * bobAmplitude;
-            }
-
-            bobOffsetY = Mathf.Lerp(bobOffsetY, targetOffset, Time.deltaTime * bobSmooth);
-            shipVisual.localPosition = visualBaseLocalPos + Vector3.up * bobOffsetY;
-        }
-
-        private void ApplyVisualTilt()
-        {
-            if (shipVisual == null) return;
-
-            Quaternion bankRot = Quaternion.Euler(0f, 0f, currentBank);
-            Quaternion knockbackRot = Quaternion.Euler(currentKnockbackTiltEuler);
-
-            shipVisual.localRotation = visualBaseLocalRot * bankRot * knockbackRot;
-        }
-
-        #endregion
-
-        #region VFX
-
-        private void HandleThrustVfx()
-        {
-            if (thrustVfx == null) return;
-
-            if (hasInput && !vfxPlaying)
-            {
-                thrustVfx.Play(true);
-                vfxPlaying = true;
-            }
-            else if (!hasInput && vfxPlaying)
-            {
-                StopVfx(thrustVfx);
-                vfxPlaying = false;
-            }
-        }
-
-        private void HandleDash()
+        private void HandleDashOneShotMovement()
         {
             if (!isDashing) return;
 
@@ -359,6 +367,19 @@ namespace Iztar.ShipModule
                 StopVfx(dashVfx);
             }
         }
+        private void HandleDashDrainingMovement()
+        {
+            if (!isDashing) return;
+
+            // Boost speed tetap aktif selama tombol ditekan & ada energi
+            float targetSpeed = maxMoveSpeed + dashSpeed;
+            Vector3 dashVelocity = transform.forward * targetSpeed;
+
+            currentVelocity = Vector3.Lerp(currentVelocity, dashVelocity, Time.deltaTime * 10f);
+            currentSpeed = currentVelocity.magnitude;
+        }
+
+        public bool GetDashState() => IsDashing;
 
         #endregion
 
@@ -429,6 +450,15 @@ namespace Iztar.ShipModule
             ApplyKnockbackSpin();
         }
 
+        private void ApplyKnockbackSpin()
+        {
+            if (knockbackSpinSpeed > 0.1f)
+            {
+                transform.Rotate(knockbackSpinAxis * knockbackSpinSpeed * Time.deltaTime, Space.Self);
+                knockbackSpinSpeed = Mathf.Lerp(knockbackSpinSpeed, 0f, Time.deltaTime * 2f);
+            }
+        }
+
         private void RecoverFromKnockback()
         {
             float effectiveLerp = hasInput ? knockbackTiltLerpSpeed * 1.5f : knockbackTiltLerpSpeed * 1.1f;
@@ -443,15 +473,6 @@ namespace Iztar.ShipModule
 
             if (tiltCloseEnough || playerWantsControl)
                 EndKnockback();
-        }
-
-        private void ApplyKnockbackSpin()
-        {
-            if (knockbackSpinSpeed > 0.1f)
-            {
-                transform.Rotate(knockbackSpinAxis * knockbackSpinSpeed * Time.deltaTime, Space.Self);
-                knockbackSpinSpeed = Mathf.Lerp(knockbackSpinSpeed, 0f, Time.deltaTime * 2f);
-            }
         }
 
         private void EndKnockback()
@@ -476,6 +497,59 @@ namespace Iztar.ShipModule
             }
         }
 
+        #endregion
+
+        #region Visuals
+
+        private void HandleVisuals()
+        {
+            if (shipVisual == null) return;
+
+            ApplyVisualTilt();
+
+            float idleFactor = 1f - Mathf.Clamp01(currentSpeed / maxMoveSpeed);
+            float targetOffset = 0f;
+
+            if (postCollisionIdleTimer <= 0f)
+            {
+                targetOffset = Mathf.Sin(Time.time * bobFrequency) * bobAmplitude * idleFactor;
+                if (currentSpeed < 0.1f)
+                    targetOffset = Mathf.Sin(Time.time * bobFrequency) * bobAmplitude;
+            }
+
+            bobOffsetY = Mathf.Lerp(bobOffsetY, targetOffset, Time.deltaTime * bobSmooth);
+            shipVisual.localPosition = visualBaseLocalPos + Vector3.up * bobOffsetY;
+        }
+
+        private void ApplyVisualTilt()
+        {
+            if (shipVisual == null) return;
+
+            Quaternion bankRot = Quaternion.Euler(0f, 0f, currentBank);
+            Quaternion knockbackRot = Quaternion.Euler(currentKnockbackTiltEuler);
+
+            shipVisual.localRotation = visualBaseLocalRot * bankRot * knockbackRot;
+        }
+
+        #endregion
+
+        #region VFX
+
+        private void HandleThrustVfx()
+        {
+            if (thrustVfx == null) return;
+
+            if (hasInput && !vfxPlaying)
+            {
+                thrustVfx.Play(true);
+                vfxPlaying = true;
+            }
+            else if (!hasInput && vfxPlaying)
+            {
+                StopVfx(thrustVfx);
+                vfxPlaying = false;
+            }
+        }
 
         #endregion
 

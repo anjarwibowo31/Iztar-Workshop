@@ -3,7 +3,7 @@ using Sirenix.OdinInspector;
 using Iztar.Manager;
 using Iztar.Utility;
 
-public class ShipWeaponAim : MonoBehaviour
+public class ShipWeaponController : MonoBehaviour
 {
     [Title("Weapon")]
     [SerializeField] private Weapon shipMainWeapon;
@@ -26,7 +26,6 @@ public class ShipWeaponAim : MonoBehaviour
     [SerializeField, Range(1f, 120f)] private float lockAngleExit = 45f;
     [SerializeField] private LayerMask targetMask;
 
-
     private Vector2 aimInput;
     private bool hasAimInput;
     private bool hasTarget;
@@ -34,11 +33,29 @@ public class ShipWeaponAim : MonoBehaviour
     private Transform currentTarget;
     private float aimResetTimer;
 
+    private void Start()
+    {
+        shipMainWeapon.WeaponActive = true;
+    }
+
     private void Update()
     {
         UpdateAimInput();
         HandleAiming();
-        shipMainWeapon.ShotDirection = weaponDirectionalGuide.forward;
+
+        HandleWeaponDashState();
+    }
+
+    private void HandleWeaponDashState()
+    {
+        if (GameManager.Instance.ActiveShip.GetDashState() == true)
+        {
+            shipMainWeapon.WeaponActive = false;
+        }
+        else
+        {
+            shipMainWeapon.WeaponActive = true;
+        }
     }
 
     private void UpdateAimInput()
@@ -52,6 +69,8 @@ public class ShipWeaponAim : MonoBehaviour
 
     private void HandleAiming()
     {
+        shipMainWeapon.ShotDirection = weaponDirectionalGuide.forward;
+
         if (currentTarget != null)
         {
             UpdateTargetLock();

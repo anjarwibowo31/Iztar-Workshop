@@ -1903,6 +1903,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 539551109}
     m_Modifications:
+    - target: {fileID: 2854055176103184249, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
+      propertyPath: projectileSpeed
+      value: 80
+      objectReference: {fileID: 0}
     - target: {fileID: 3739435272095271593, guid: 44a67463b54147c458eeb8bd75119af2, type: 3}
       propertyPath: m_Name
       value: Fighter_Ship

@@ -38,7 +38,7 @@ public class EnemySpawnerManager : MonoBehaviour
             {
                 Vector3 pos = GetSpawnOutsideFrustum(frustumPolygon, offsetRadius);
                 lastSpawnPos = pos;
-                Instantiate(prefab, pos, Quaternion.identity);
+                Instantiate(prefab, pos, Quaternion.identity, SceneGameObjectContainer.EnemyContainer);
             }
 
             spawnTimer = spawnInterval;
