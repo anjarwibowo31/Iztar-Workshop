@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -7,10 +8,10 @@ namespace Iztar.UserInterface
     {
         public static SettingUI Instance { get; private set; }
 
-        [SerializeField] private SettingDataSO settingDataReference;
-
         [Title("All Setting Components")]
         [SerializeField] private SliderSetting[] sliderComponents;
+
+        private SettingDataSO settingDataReference;
 
         private void Awake()
         {
@@ -20,12 +21,27 @@ namespace Iztar.UserInterface
                 return;
             }
             Instance = this;
+        }
 
-            if (settingDataReference == null)
-            {
-                Debug.LogError("SettingDataSO reference is not set in the inspector.");
-                return;
-            }
+        private void OnEnable()
+        {
+            OnEnableAsync().Forget();
+        }
+
+        public void ResetSaveData()
+        {
+            PopupChoiceWindow.Instance.Show("Confirm reset data?", onConfirm: () => SaveDataManager.Instance.ResetToDefault());
+        }
+
+        public void ExitToMainMenu()
+        {
+
+        }
+
+        private async UniTaskVoid OnEnableAsync()
+        {
+            await UniTask.WaitUntil(() => SaveDataManager.Instance.SettingsData != null);
+            settingDataReference = SaveDataManager.Instance.SettingsData;
 
             BindSettingsToComponents();
         }

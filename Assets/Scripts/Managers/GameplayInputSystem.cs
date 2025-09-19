@@ -7,9 +7,9 @@ using Joystick = Iztar.InputSystem.Joystick;
 
 namespace Iztar.Manager
 {
-    public class InputManager : MonoBehaviour
+    public class GameplayInputSystem : MonoBehaviour
     {
-        public static InputManager Instance { get; private set; }
+        public static GameplayInputSystem Instance { get; private set; }
 
         [Header("Custom Joystick (Mobile)")]
         [SerializeField] private Joystick leftJoystick;

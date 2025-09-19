@@ -10,12 +10,21 @@ namespace Iztar.ShipModule
     public class ShipController : MonoBehaviour
     {
         public static ShipController Instance { get; private set; }
+
+        #region Delegate
+
         public event Action<float> OnCollision;
+        private delegate void HandleDashInput();
+        private delegate void HandleDashMovement();
+
+        private HandleDashInput HandleDashInputDelegate;
+        private HandleDashMovement HandleDashMovementDelegate;
+
+        #endregion
 
 #if UNITY_EDITOR // Debugger
         #region Debug Section (Odin)
 
-        // Tampilkan debug hanya saat FoldoutGroup "Debug" dibuka
         [FoldoutGroup("Debug", Expanded = false), ShowInInspector, ReadOnly, PropertyOrder(-10)]
         private float CurrentSpeed => currentSpeed;
 
@@ -58,8 +67,9 @@ namespace Iztar.ShipModule
         [SerializeField] private float bankLerpSpeed = 4f;
 
         [Title("Dash")]
-        // Mode
-        [SerializeField] private bool isUsingOneShot = true;
+        [ShowInInspector, ReadOnly]
+        private bool isUsingOneShot = true;
+
         // One-Shot Mode
         [BoxGroup("One-Shot"), SerializeField] private float dashSpeed = 80f;
         [BoxGroup("One-Shot"), SerializeField] private float dashDuration = 0.4f;
@@ -73,10 +83,10 @@ namespace Iztar.ShipModule
 
         [Title("Collision / Knockback")]
         [SerializeField] private int obstacleLayerIndex = 8;
+        [SerializeField] private Vector3 maxKnockbackTilt = new(30f, 20f, 25f);
         [SerializeField] private float collisionFreezeTime = 0.5f;
         [SerializeField] private float collisionCooldown = 0.2f;
         [SerializeField] private float postCollisionIdleDelay = 0.7f;
-        [SerializeField] private Vector3 maxKnockbackTilt = new(30f, 20f, 25f);
         [SerializeField] private float knockbackTiltLerpSpeed = 4f;
         [SerializeField] private float knockbackForceMultiplier = 0.8f;
         [SerializeField] private float knockbackDecaySpeed = 6f;
@@ -113,6 +123,7 @@ namespace Iztar.ShipModule
         private float dashTimer;
         private float dashCooldownTimer;
         private bool isDashing;
+
         private float dashEnergy;
         private float dashEnergyRegenTimer;
 
@@ -165,6 +176,9 @@ namespace Iztar.ShipModule
         private void Start()
         {
             GameManager.Instance.ActiveShip = this;
+
+            HandleDashInputDelegate = isUsingOneShot ? HandleDashOneShotInput : HandleDashDrainingInput;
+            HandleDashMovementDelegate = isUsingOneShot ? HandleDashOneShotMovement : HandleDashDrainingMovement;
         }
 
         private void Update()
@@ -181,16 +195,8 @@ namespace Iztar.ShipModule
 
             HandleMoveInput();
 
-            if (isUsingOneShot)
-            {
-                HandleDashOneShotInput();
-                HandleDashOneShotMovement();
-            }
-            else
-            {
-                HandleDashDrainingInput();
-                HandleDashDrainingMovement();
-            }
+            HandleDashInputDelegate();
+            HandleDashMovementDelegate();
 
             HandleThrustVfx();
             HandleMovement();
@@ -217,21 +223,63 @@ namespace Iztar.ShipModule
 
         #endregion
 
+        #region Public Methods
+
+        [Button("Switch Dash Mode")]
+        public void SwitchDashMode()
+        {
+            isUsingOneShot = !isUsingOneShot;
+
+            HandleDashInputDelegate = isUsingOneShot ? HandleDashOneShotInput : HandleDashDrainingInput;
+            HandleDashMovementDelegate = isUsingOneShot ? HandleDashOneShotMovement : HandleDashDrainingMovement;
+
+            // Reset dash state
+            isDashing = false;
+            dashTimer = 0f;
+            dashCooldownTimer = 0f;
+            dashEnergy = dashEnergyMax;
+            dashEnergyRegenTimer = 0f;
+            StopVfx(dashVfx, true);
+        }
+
+        public void SetUpFromSettingData(SettingDataSO data)
+        {
+            maxMoveSpeed = GetValue(data, "MaxSpeed");
+            inertiaFollowStrength = GetValue(data, "InertiaStrength");
+            boostStartThreshold = GetValue(data, "BoostStartThreshold");
+            boostStartMultiplier = GetValue(data, "BoostStartMultiplier");
+            maxAngularSpeed = GetValue(data, "MaxManuverSpeed");
+            dashSpeed = GetValue(data, "DashSpeed");
+            dashDuration = GetValue(data, "DashDuration");
+        }
+
+        private float GetValue(SettingDataSO data, string id)
+        {
+            foreach (var s in data.sliderSettingDataArray)
+            {
+                if (s.ID == id)
+                    return s.currentValue;
+            }
+            Debug.LogWarning($"ID {id} tidak ditemukan di SettingDataSO!");
+            return 0f;
+        }
+
+
+        #endregion
+
         #region Input
 
         private void HandleMoveInput()
         {
-            moveInput = InputManager.Instance != null ? InputManager.Instance.GetMoveInput() : Vector2.zero;
+            moveInput = GameplayInputSystem.Instance != null ? GameplayInputSystem.Instance.GetMoveInput() : Vector2.zero;
             hasInput = moveInput.sqrMagnitude > 0.01f;
         }
 
         private void HandleDashOneShotInput()
         {
-            // BUAT SYSTEM DASH BARU DISINI, DRAINING DASH
+            if (GameplayInputSystem.Instance == null) return;
 
-            if (InputManager.Instance == null) return;
-
-            if (InputManager.Instance.ConsumeDashPressed() && !isDashing && dashCooldownTimer <= 0f)
+            if (GameplayInputSystem.Instance.ConsumeDashPressed() && !isDashing && dashCooldownTimer <= 0f)
             {
                 isDashing = true;
                 dashTimer = dashDuration;
@@ -241,9 +289,9 @@ namespace Iztar.ShipModule
         }
         private void HandleDashDrainingInput()
         {
-            if (InputManager.Instance == null) return;
+            if (GameplayInputSystem.Instance == null) return;
 
-            bool dashHeld = InputManager.Instance.IsDashHeld();
+            bool dashHeld = GameplayInputSystem.Instance.IsDashHeld();
             // NOTE: pastikan InputManager punya method GetDashHeld() (cek tombol masih ditekan)
 
             if (dashHeld && dashEnergy > 0f)
@@ -263,7 +311,7 @@ namespace Iztar.ShipModule
                 if (isDashing)
                 {
                     isDashing = false;
-                    StopVfx(dashVfx, true);
+                    StopVfx(dashVfx);
                 }
 
                 if (dashEnergy < dashEnergyMax)
@@ -302,7 +350,7 @@ namespace Iztar.ShipModule
                 }
                 else
                 {
-                    boostStartVfx?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                    StopVfx(boostStartVfx);
                 }
 
                 targetVelocity = transform.forward * targetSpeed;
@@ -360,7 +408,7 @@ namespace Iztar.ShipModule
             if (dashTimer <= 0f)
             {
                 isDashing = false;
-                StopVfx(dashVfx, true);
+                StopVfx(dashVfx);
             }
             else if (dashTimer <= dashVfxStopThreshold)
             {

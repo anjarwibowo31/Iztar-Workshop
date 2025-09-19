@@ -60,7 +60,7 @@ public class ShipWeaponController : MonoBehaviour
 
     private void UpdateAimInput()
     {
-        aimInput = InputManager.Instance.GetAimInput();
+        aimInput = GameplayInputSystem.Instance.GetAimInput();
         hasAimInput = aimInput.sqrMagnitude > 0.01f;
 
         if (hasAimInput)

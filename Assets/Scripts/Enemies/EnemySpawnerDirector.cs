@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class EnemySpawnerManager : MonoBehaviour
+public class EnemySpawnerDirector : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Camera cam;

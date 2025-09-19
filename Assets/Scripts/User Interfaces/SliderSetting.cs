@@ -12,15 +12,16 @@ namespace Iztar.UserInterface
         private int decimals;
         private string format;
 
-        private void Start()
+        public override void AssignData(SettingDataSO.SliderSettingData data)
         {
+            base.AssignData(data);
+
             if (!string.IsNullOrEmpty(currentData.ID))
             {
                 slider.minValue = currentData.min;
                 slider.maxValue = currentData.max;
-                slider.value = currentData.defaultValue;
+                slider.value = currentData.currentValue;
 
-                // 🔑 Tentukan jumlah desimal berdasarkan step
                 float step = currentData.step > 0 ? currentData.step : 1f;
                 decimals = GetDecimalPlaces(step);
                 format = "F" + decimals;
@@ -39,7 +40,6 @@ namespace Iztar.UserInterface
             float current = slider.value;
             float snapped;
 
-            // Snap berbasis max
             float stepsFromTop = Mathf.Round((max - value) / step);
             snapped = max - stepsFromTop * step;
             snapped = Mathf.Clamp(snapped, min, max);
@@ -48,6 +48,8 @@ namespace Iztar.UserInterface
             {
                 slider.SetValueWithoutNotify(snapped);
             }
+
+            currentData.currentValue = snapped;
 
             label.text = snapped.ToString(format);
         }

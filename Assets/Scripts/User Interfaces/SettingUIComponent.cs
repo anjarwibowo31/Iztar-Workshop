@@ -10,7 +10,7 @@ namespace Iztar.UserInterface
 
         [SerializeField] private string settingID;
 
-        public void AssignData(SettingDataSO.SliderSettingData data)
+        public virtual void AssignData(SettingDataSO.SliderSettingData data)
         {
             currentData = data;
         }
