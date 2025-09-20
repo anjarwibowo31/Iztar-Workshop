@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
+using Cysharp.Threading.Tasks;
 
 namespace Iztar.UserInterface
 {
@@ -18,14 +20,21 @@ namespace Iztar.UserInterface
 
         private void Awake()
         {
-            settingsData = SaveDataManager.Instance.SettingsData;
-
             if (toggleButton != null)
                 toggleButton.onClick.AddListener(ToggleValue);
         }
 
         private void OnEnable()
         {
+            OnEnableAsync().Forget();
+        }
+
+        private async UniTaskVoid OnEnableAsync()
+        {
+            await UniTask.WaitUntil(() => SaveDataManager.Instance != null && SaveDataManager.Instance.SettingsData != null);
+
+            settingsData = SaveDataManager.Instance.SettingsData;
+
             UpdateLabel();
         }
 

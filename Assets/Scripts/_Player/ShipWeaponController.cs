@@ -46,6 +46,22 @@ public class ShipWeaponController : MonoBehaviour
         HandleWeaponDashState();
     }
 
+    public void DisableWeapon()
+    {
+        weaponDirectionalGuide.gameObject.SetActive(false);
+        weaponDirectionMark.gameObject.SetActive(false);
+        weaponActiveMark.gameObject.SetActive(false);
+        gameObject.SetActive(false);
+    }
+
+    public void EnableWeapon()
+    {
+        weaponDirectionalGuide.gameObject.SetActive(true);
+        weaponDirectionMark.gameObject.SetActive(true);
+        weaponActiveMark.gameObject.SetActive(true);
+        gameObject.SetActive(true);
+    }
+
     private void HandleWeaponDashState()
     {
         if (GameManager.Instance.ActiveShip.GetDashState() == true)

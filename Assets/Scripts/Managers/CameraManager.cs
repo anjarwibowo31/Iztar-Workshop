@@ -5,6 +5,8 @@ using Sirenix.OdinInspector;
 
 public class CameraManager : MonoBehaviour
 {
+    public static CameraManager Instance { get; private set; }
+
     [Title("Camera Settings")]
     [SerializeField] private CinemachineCamera cinemachineCamera;
     [SerializeField] private int maxFOV = 58;
@@ -14,8 +16,17 @@ public class CameraManager : MonoBehaviour
 
     [SerializeField] private CameraFOVDebug cameraFOVDebug;
 
+    public CinemachineCamera CinemachineCamera => cinemachineCamera;
+
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+
         cinemachineCamera.Lens.FieldOfView = defaultFOV;
 
         cameraFOVDebug?.UpdateFOVText((int)cinemachineCamera.Lens.FieldOfView);

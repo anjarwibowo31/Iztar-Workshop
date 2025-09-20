@@ -1,16 +1,17 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class EnemySpawnerDirector : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Camera cam;
-    [SerializeField] private GameObject prefab;
 
     [Header("Spawn Settings")]
-    [SerializeField] private float offsetRadius = 5f;   // jarak dari batas frustum
-    [SerializeField] private float planeY = 0f;         // tinggi plane
+    [SerializeField] private float offsetRadius = 5f;
+    [SerializeField] private float planeY = 0f;
     [SerializeField] private int maxAttempts = 20;
+    [SerializeField] private EnemySpawnBatch spawnBatch;
 
     [Header("Spawn Routine")]
     [SerializeField] private float spawnInterval = 5f;
@@ -20,15 +21,42 @@ public class EnemySpawnerDirector : MonoBehaviour
     private Vector3[] frustumPolygon = new Vector3[0];
     private Vector3 lastSpawnPos;
 
+    // === Delegates ===
+    private delegate void UpdateHandler();
+    private UpdateHandler currentUpdate;
+
     private void Start()
     {
         if (cam == null) cam = Camera.main;
-        spawnTimer = initialDelay;
+
+        // Mulai dengan waiting state
+        currentUpdate = UpdateIdle;
+        StartCoroutine(WaitAndActivate(initialDelay));
     }
 
     private void Update()
     {
-        if (prefab == null || cam == null) return;
+        currentUpdate?.Invoke();
+    }
+
+    // Coroutine tunggu initial delay
+    private IEnumerator WaitAndActivate(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        spawnTimer = spawnInterval;
+        currentUpdate = UpdateNormal;
+    }
+
+    // State idle (tidak ngapa2in)
+    private void UpdateIdle()
+    {
+        // kosong, hanya menunggu delegate diganti
+    }
+
+    // State normal (jalan tiap frame)
+    private void UpdateNormal()
+    {
+        if (cam == null) return;
 
         spawnTimer -= Time.deltaTime;
         if (spawnTimer <= 0f)
@@ -38,13 +66,15 @@ public class EnemySpawnerDirector : MonoBehaviour
             {
                 Vector3 pos = GetSpawnOutsideFrustum(frustumPolygon, offsetRadius);
                 lastSpawnPos = pos;
-                Instantiate(prefab, pos, Quaternion.identity, SceneGameObjectContainer.EnemyContainer);
+
+                Instantiate(spawnBatch, pos, Quaternion.identity, SceneGameObjectContainer.EnemyContainer);
             }
 
             spawnTimer = spawnInterval;
         }
     }
 
+    // === Utility ===
     private Vector3[] GetFrustumPolygon(Camera cam, float planeY)
     {
         Plane p = new(Vector3.up, new Vector3(0, planeY, 0));
@@ -67,7 +97,6 @@ public class EnemySpawnerDirector : MonoBehaviour
 
         if (hits.Count < 3) return new Vector3[0];
 
-        // urutkan CCW
         Vector3 center = Vector3.zero;
         foreach (var h in hits) center += h;
         center /= hits.Count;
@@ -84,19 +113,16 @@ public class EnemySpawnerDirector : MonoBehaviour
 
     private Vector3 GetSpawnOutsideFrustum(Vector3[] polygon, float radius)
     {
-        // pilih sisi random dari frustum polygon
         int idx = Random.Range(0, polygon.Length);
         Vector3 a = polygon[idx];
         Vector3 b = polygon[(idx + 1) % polygon.Length];
 
-        // titik random di sisi itu
         float t = Random.Range(0f, 1f);
         Vector3 pointOnEdge = Vector3.Lerp(a, b, t);
 
-        // arah keluar = normal sisi (2D XZ)
         Vector2 edgeDir = new Vector2(b.x - a.x, b.z - a.z).normalized;
-        Vector2 outward = new(-edgeDir.y, edgeDir.x); // rotasi 90 derajat
-        // pastikan outward benar-benar keluar (cek dengan center polygon)
+        Vector2 outward = new(-edgeDir.y, edgeDir.x);
+
         Vector3 polyCenter = Vector3.zero;
         foreach (var v in polygon) polyCenter += v;
         polyCenter /= polygon.Length;
@@ -105,7 +131,6 @@ public class EnemySpawnerDirector : MonoBehaviour
         if (Vector2.Dot(outward, toCenter) > 0)
             outward = -outward;
 
-        // spawn point = titik di edge + outward * radius
         Vector3 spawn = new(
             pointOnEdge.x + outward.x * radius,
             planeY,
@@ -115,7 +140,6 @@ public class EnemySpawnerDirector : MonoBehaviour
         return spawn;
     }
 
-    // Gizmos untuk debug
 #if UNITY_EDITOR
     private void OnDrawGizmos()
     {

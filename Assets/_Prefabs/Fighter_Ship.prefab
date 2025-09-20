@@ -29496,12 +29496,12 @@ MonoBehaviour:
   maxMoveSpeed: 25
   inertiaSmooth: 0.4
   inertiaFollowStrength: 1
+  startLerpSpeed: 3.5
   boostStartThreshold: 20
   boostStartMultiplier: 1.5
   maxAngularSpeed: 180
   bankAngle: 65
   bankLerpSpeed: 5
-  isUsingOneShot: 1
   dashSpeed: 25
   dashDuration: 2
   dashCooldown: 4
@@ -29511,10 +29511,10 @@ MonoBehaviour:
   dashEnergyRegenRate: 0.6
   dashEnergyRegenDelay: 1
   obstacleLayerIndex: 8
+  maxKnockbackTilt: {x: 5, y: 15, z: 20}
   collisionFreezeTime: 0.4
   collisionCooldown: 0.15
   postCollisionIdleDelay: 0.6
-  maxKnockbackTilt: {x: 5, y: 15, z: 20}
   knockbackTiltLerpSpeed: 5
   knockbackForceMultiplier: 0.7
   knockbackDecaySpeed: 7

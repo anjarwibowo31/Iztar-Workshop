@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Iztar.UserInterface
 {
@@ -35,7 +36,15 @@ namespace Iztar.UserInterface
 
         public void ExitToMainMenu()
         {
+            PopupChoiceWindow.Instance.Show("Back to Main Menu?", onConfirm: () => SceneManager.LoadScene("MainMenu"));
+        }
 
+        public void AssignToShip()
+        {
+            if (GameManager.Instance.ActiveShip != null && settingDataReference != null)
+            {
+                GameManager.Instance.ActiveShip.SetUpFromSettingData(settingDataReference);
+            }
         }
 
         private async UniTaskVoid OnEnableAsync()

@@ -16,9 +16,11 @@ namespace Iztar.ShipModule
         public event Action<float> OnCollision;
         private delegate void HandleDashInput();
         private delegate void HandleDashMovement();
+        private delegate void UpdateState();
 
         private HandleDashInput HandleDashInputDelegate;
         private HandleDashMovement HandleDashMovementDelegate;
+        private UpdateState currentUpdate;
 
         #endregion
 
@@ -57,7 +59,10 @@ namespace Iztar.ShipModule
         [SerializeField] private float inertiaSmooth = 0.3f;
         [SerializeField] private float inertiaFollowStrength = 2f;
 
-        [Title("Boost Start")]
+        [Title("Initialize Start")]
+        [SerializeField] private float startLerpSpeed = 2f;
+
+        [Title("Boost Engine Start")]
         [SerializeField] private float boostStartThreshold = 5f;
         [SerializeField] private float boostStartMultiplier = 2f;
 
@@ -107,6 +112,10 @@ namespace Iztar.ShipModule
         #endregion
 
         #region Private State
+
+        private ShipWeaponController weaponController;
+
+        private bool isStarting = true;
 
         private Vector2 moveInput;
         private bool hasInput;
@@ -165,12 +174,11 @@ namespace Iztar.ShipModule
                 visualBaseLocalRot = shipVisual.localRotation;
             }
 
-            hasInput = false;
-            vfxPlaying = false;
-            isDashing = false;
-
             dashEnergy = dashEnergyMax;
-            dashEnergyRegenTimer = 0f;
+
+            weaponController = GetComponent<ShipWeaponController>();
+            weaponController.DisableWeapon();
+            
         }
 
         private void Start()
@@ -179,29 +187,23 @@ namespace Iztar.ShipModule
 
             HandleDashInputDelegate = isUsingOneShot ? HandleDashOneShotInput : HandleDashDrainingInput;
             HandleDashMovementDelegate = isUsingOneShot ? HandleDashOneShotMovement : HandleDashDrainingMovement;
+
+            if (shipVisual != null)
+            {
+                Vector3 pos = visualBaseLocalPos;
+                pos.z -= 50f;
+                shipVisual.localPosition = pos;
+            }
+
+            thrustVfx.Play(true);
+
+            currentUpdate = UpdateStarting;
         }
 
         private void Update()
         {
             UpdateTimers();
-
-            if (isKnockback)
-            {
-                HandleKnockback();
-                return;
-            }
-
-            if (isColliding) return;
-
-            HandleMoveInput();
-
-            HandleDashInputDelegate();
-            HandleDashMovementDelegate();
-
-            HandleThrustVfx();
-            HandleMovement();
-            HandleBanking();
-            HandleVisuals();
+            currentUpdate?.Invoke();
         }
 
         private void OnEnable()
@@ -264,6 +266,49 @@ namespace Iztar.ShipModule
             return 0f;
         }
 
+
+        #endregion
+
+        #region State Updates
+
+        private void UpdateStarting()
+        {
+            if (shipVisual == null) return;
+
+            shipVisual.localPosition = Vector3.Lerp(
+                shipVisual.localPosition,
+                visualBaseLocalPos,
+                Time.deltaTime * startLerpSpeed
+            );
+
+            if (Vector3.Distance(shipVisual.localPosition, visualBaseLocalPos) < 0.05f)
+            {
+                shipVisual.localPosition = visualBaseLocalPos;
+                isStarting = false;
+                currentUpdate = UpdateNormal;
+                weaponController.EnableWeapon();
+                StopVfx(thrustVfx);
+            }
+        }
+
+        private void UpdateNormal()
+        {
+            if (isKnockback)
+            {
+                HandleKnockback();
+                return;
+            }
+
+            if (isColliding) return;
+
+            HandleMoveInput();
+            HandleDashInputDelegate();
+            HandleDashMovementDelegate();
+            HandleThrustVfx();
+            HandleMovement();
+            HandleBanking();
+            HandleVisuals();
+        }
 
         #endregion
 

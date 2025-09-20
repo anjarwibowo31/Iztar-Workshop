@@ -1,5 +1,7 @@
+using Cysharp.Threading.Tasks;
 using Iztar.ShipModule;
 using Sirenix.OdinInspector;
+using System;
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -17,7 +19,7 @@ public class CameraShake : MonoBehaviour
     private CinemachineBasicMultiChannelPerlin noise;
 
     [Header("Default Shake Parameters")]
-    [SerializeField] private CameraShakeParams defaultShakeParams = new CameraShakeParams { amplitude = 2f, frequency = 2f, duration = 0.3f };
+    [SerializeField] private CameraShakeParams defaultShakeParams = new() { amplitude = 2f, frequency = 2f, duration = 0.3f };
 
     private void Awake()
     {
@@ -26,6 +28,13 @@ public class CameraShake : MonoBehaviour
 
     private void Start()
     {
+        StartAsync().Forget();
+    }
+
+    private async UniTaskVoid StartAsync()
+    {
+        await UniTask.WaitUntil(() => ShipController.Instance != null);
+
         ShipController.Instance.OnCollision += Instance_OnTriggerEnterEvent;
     }
 
