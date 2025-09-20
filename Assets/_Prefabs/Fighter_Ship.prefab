@@ -29495,7 +29495,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxMoveSpeed: 25
   inertiaSmooth: 0.4
-  inertiaFollowStrength: 1
+  inertiaStrength: 0.33
   startLerpSpeed: 3.5
   boostStartThreshold: 20
   boostStartMultiplier: 1.5
@@ -29548,9 +29548,9 @@ MonoBehaviour:
   weaponActiveMarkRotator: {fileID: 3474421670853218376}
   aimActiveColor: {r: 0.7686275, g: 0.8313726, b: 0.909804, a: 0.6}
   aimPassiveColor: {r: 0.7686275, g: 0.8313726, b: 0.909804, a: 0.09803922}
-  aimHasTargetColor: {r: 0.28627452, g: 0.5647059, b: 0.9098039, a: 1}
+  aimHasTargetColor: {r: 0.2509804, g: 0.5294118, b: 0.8588236, a: 1}
   colorLerpSpeed: 10
-  lockRange: 30
+  lockRange: 50
   lockAngle: 20
   lockAngleExit: 40
   targetMask:

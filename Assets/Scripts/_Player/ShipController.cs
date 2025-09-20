@@ -57,7 +57,7 @@ namespace Iztar.ShipModule
         [Title("Movement")]
         [SerializeField] private float maxMoveSpeed = 35f;
         [SerializeField] private float inertiaSmooth = 0.3f;
-        [SerializeField] private float inertiaFollowStrength = 2f;
+        [SerializeField] private float inertiaCancellation = 2f;
 
         [Title("Initialize Start")]
         [SerializeField] private float startLerpSpeed = 2f;
@@ -232,6 +232,11 @@ namespace Iztar.ShipModule
         {
             isUsingOneShot = !isUsingOneShot;
 
+            ChangeDashMode(isUsingOneShot);
+        }
+
+        private void ChangeDashMode(bool isUsingOneShot)
+        {
             HandleDashInputDelegate = isUsingOneShot ? HandleDashOneShotInput : HandleDashDrainingInput;
             HandleDashMovementDelegate = isUsingOneShot ? HandleDashOneShotMovement : HandleDashDrainingMovement;
 
@@ -247,12 +252,14 @@ namespace Iztar.ShipModule
         public void SetUpFromSettingData(SettingDataSO data)
         {
             maxMoveSpeed = GetValue(data, "MaxSpeed");
-            inertiaFollowStrength = GetValue(data, "InertiaStrength");
+            inertiaCancellation = GetValue(data, "InertiaCancellation");
             boostStartThreshold = GetValue(data, "BoostStartThreshold");
             boostStartMultiplier = GetValue(data, "BoostStartMultiplier");
             maxAngularSpeed = GetValue(data, "MaxManuverSpeed");
             dashSpeed = GetValue(data, "DashSpeed");
             dashDuration = GetValue(data, "DashDuration");
+
+            ChangeDashMode(data.isUsingOneShotDash);
         }
 
         private float GetValue(SettingDataSO data, string id)
@@ -405,7 +412,7 @@ namespace Iztar.ShipModule
             currentVelocity = Vector3.Lerp(
                 currentVelocity,
                 targetVelocity,
-                Time.deltaTime * inertiaFollowStrength
+                Time.deltaTime * inertiaCancellation
             );
 
             // Selalu sinkron speed dengan velocity

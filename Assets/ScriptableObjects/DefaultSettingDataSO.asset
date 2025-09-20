@@ -17,13 +17,13 @@ MonoBehaviour:
     min: 20
     max: 50
     step: 5
-    currentValue: 25
+    currentValue: 30
     defaultValue: 25
-  - ID: InertiaStrength
+  - ID: InertiaCancellation
     min: 0.1
     max: 5
     step: 0.25
-    currentValue: 1
+    currentValue: 5
     defaultValue: 1
   - ID: BoostStartThreshold
     min: 0
@@ -47,8 +47,8 @@ MonoBehaviour:
     min: 20
     max: 80
     step: 5
-    currentValue: 60
-    defaultValue: 60
+    currentValue: 25
+    defaultValue: 25
   - ID: DashDuration
     min: 0.1
     max: 6
@@ -80,3 +80,4 @@ MonoBehaviour:
     currentValue: 1
     defaultValue: 1
   isUsingOneShotDash: 1
+  dashDefaultValue: 1
