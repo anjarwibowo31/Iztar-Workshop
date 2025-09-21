@@ -2,6 +2,7 @@
 using Sirenix.OdinInspector;
 using Sirenix.Utilities.Editor;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -249,30 +250,20 @@ namespace Iztar.ShipModule
             StopVfx(dashVfx, true);
         }
 
-        public void SetUpFromSettingData(SettingDataSO data)
+        public void SetUpFromSettingData()
         {
-            maxMoveSpeed = GetValue(data, "MaxSpeed");
-            inertiaCancellation = GetValue(data, "InertiaCancellation");
-            boostStartThreshold = GetValue(data, "BoostStartThreshold");
-            boostStartMultiplier = GetValue(data, "BoostStartMultiplier");
-            maxAngularSpeed = GetValue(data, "MaxManuverSpeed");
-            dashSpeed = GetValue(data, "DashSpeed");
-            dashDuration = GetValue(data, "DashDuration");
+            Dictionary<string, SettingDataSO.SliderSettingData> sliderData = SaveDataManager.Instance.SliderSettingsDataDict;
 
-            ChangeDashMode(data.isUsingOneShotDash);
+            maxMoveSpeed = sliderData["MaxSpeed"].currentValue;
+            inertiaCancellation = sliderData["InertiaCancellation"].currentValue;
+            boostStartThreshold = sliderData["BoostStartThreshold"].currentValue;
+            boostStartMultiplier = sliderData["BoostStartMultiplier"].currentValue;
+            maxAngularSpeed = sliderData["MaxManuverSpeed"].currentValue;
+            dashSpeed = sliderData["DashSpeed"].currentValue;
+            dashDuration = sliderData["DashDuration"].currentValue;
+
+            ChangeDashMode(SaveDataManager.Instance.SwitchSettingsDataDict["DashType"].currentValue);
         }
-
-        private float GetValue(SettingDataSO data, string id)
-        {
-            foreach (var s in data.sliderSettingDataArray)
-            {
-                if (s.ID == id)
-                    return s.currentValue;
-            }
-            Debug.LogWarning($"ID {id} tidak ditemukan di SettingDataSO!");
-            return 0f;
-        }
-
 
         #endregion
 

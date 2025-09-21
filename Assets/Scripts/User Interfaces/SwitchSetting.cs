@@ -1,13 +1,17 @@
+using Cysharp.Threading.Tasks;
+using Sirenix.OdinInspector;
+using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using System;
-using Cysharp.Threading.Tasks;
 
 namespace Iztar.UserInterface
 {
-    public class SwitchSetting : MonoBehaviour
+    public class SwitchSetting : SettingUIComponent
     {
+        [ShowInInspector, ReadOnly] protected SettingDataSO.SwitchSettingData currentData;
+        public SettingDataSO.SwitchSettingData GetCurrentData() => currentData;
+
         [Header("UI References")]
         [SerializeField] private Button toggleButton;
         [SerializeField] private TextMeshProUGUI label;
@@ -16,7 +20,8 @@ namespace Iztar.UserInterface
         [SerializeField] private string trueText = "ON";
         [SerializeField] private string falseText = "OFF";
 
-        private SettingDataSO settingsData;
+        private Func<bool> getter;
+        private Action<bool> setter;
 
         private void Awake()
         {
@@ -24,30 +29,42 @@ namespace Iztar.UserInterface
                 toggleButton.onClick.AddListener(ToggleValue);
         }
 
-        private void OnEnable()
+        public void Initialize(Func<bool> getter, Action<bool> setter)
         {
-            OnEnableAsync().Forget();
-        }
-
-        private async UniTaskVoid OnEnableAsync()
-        {
-            await UniTask.WaitUntil(() => SaveDataManager.Instance != null && SaveDataManager.Instance.SettingsData != null);
-
-            settingsData = SaveDataManager.Instance.SettingsData;
+            this.getter = getter;
+            this.setter = setter;
 
             UpdateLabel();
         }
 
         private void ToggleValue()
         {
-            settingsData.isUsingOneShotDash = !settingsData.isUsingOneShotDash;
+            if (getter == null || setter == null) return;
+
+            bool current = getter();
+            setter(!current);
+
             UpdateLabel();
         }
 
         private void UpdateLabel()
         {
-            if (label != null)
-                label.text = settingsData.isUsingOneShotDash ? trueText : falseText;
+            if (label != null && getter != null)
+                label.text = getter() ? trueText : falseText;
         }
+
+        internal void AssignData(SettingDataSO.SwitchSettingData match)
+        {
+            if (match == null) return;
+
+            currentData = match;
+
+            // inject getter & setter ke Initialize
+            Initialize(
+                getter: () => currentData.currentValue,
+                setter: val => currentData.currentValue = val
+            );
+        }
+
     }
 }

@@ -12,11 +12,6 @@ public class EnemySpawnBatch : MonoBehaviour
 
     private List<GameObject> spawnedEnemies = new();
 
-    private void Start()
-    {
-        StartCoroutine(SpawnBatchCoroutine());
-    }
-
     private IEnumerator SpawnBatchCoroutine()
     {
         spawnedEnemies.Clear();
@@ -30,7 +25,7 @@ public class EnemySpawnBatch : MonoBehaviour
                 transform.position.z + circle.y
             );
 
-            GameObject enemy = Instantiate(enemyPrefab, randomPos, Quaternion.identity);
+            GameObject enemy = Instantiate(enemyPrefab, randomPos, Quaternion.identity, SceneGameObjectContainer.EnemyContainer);
             enemy.SetActive(false);
             spawnedEnemies.Add(enemy);
 

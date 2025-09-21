@@ -2,6 +2,7 @@
 using Sirenix.OdinInspector;
 using Iztar.Manager;
 using Iztar.Utility;
+using Iztar.ShipModule;
 
 public class ShipWeaponController : MonoBehaviour
 {

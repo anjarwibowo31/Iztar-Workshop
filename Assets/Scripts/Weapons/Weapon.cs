@@ -1,7 +1,10 @@
 using UnityEngine;
 
-public abstract class Weapon : MonoBehaviour
+namespace Iztar.ShipModule
 {
-    public Vector3 ShotDirection { get; set; }
-    public bool WeaponActive { get; set; }
+    public abstract class Weapon : MonoBehaviour
+    {
+        public Vector3 ShotDirection { get; set; }
+        public bool WeaponActive { get; set; }
+    }
 }

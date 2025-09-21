@@ -13,6 +13,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ShipController shipPrefab;
     [SerializeField] private bool selfInitializeOnAwake = false;
 
+    public bool IsPaused { get; private set; } = false;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -34,11 +36,9 @@ public class GameManager : MonoBehaviour
         SetupGameplay().Forget();
     }
 
-
     public void StartGame()
     {
         LoadScene("Gameplay");
-
         SetupGameplay().Forget();
     }
 
@@ -57,7 +57,7 @@ public class GameManager : MonoBehaviour
 
         ActiveShip.transform.SetParent(SceneGameObjectContainer.ShipContainer);
         ActiveShip.gameObject.SetActive(true);
-        ActiveShip.SetUpFromSettingData(SaveDataManager.Instance.SettingsData);
+        ActiveShip.SetUpFromSettingData();
 
         CameraManager.Instance.CinemachineCamera.Follow = ActiveShip.transform;
     }
@@ -65,5 +65,36 @@ public class GameManager : MonoBehaviour
     private void LoadScene(string sceneName)
     {
         SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+    }
+
+    // === PAUSE HANDLING ===
+    public void TogglePause()
+    {
+        if (IsPaused)
+            ResumeGame();
+        else
+            PauseGame();
+    }
+
+    public void PauseGame()
+    {
+        if (IsPaused) return;
+
+        Time.timeScale = 0f;
+        IsPaused = true;
+
+        // TODO: panggil UI pause kalau ada
+        Debug.Log("Game Paused");
+    }
+
+    public void ResumeGame()
+    {
+        if (!IsPaused) return;
+
+        Time.timeScale = 1f;
+        IsPaused = false;
+
+        // TODO: sembunyikan UI pause kalau ada
+        Debug.Log("Game Resumed");
     }
 }

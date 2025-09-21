@@ -35,7 +35,10 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        Destroy(other.gameObject);
+        if (other.TryGetComponent(out IDamageable target))
+        {
+            target.TakeDamage(damage);
+        }
 
         if (hitEffect != null)
         {
@@ -59,7 +62,7 @@ public class Projectile : MonoBehaviour
 
     private void ReleaseToPool()
     {
-        if (isReleased) return; // cegah double release
+        if (isReleased) return;
         isReleased = true;
 
         if (pool != null)

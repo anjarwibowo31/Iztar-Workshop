@@ -1,4 +1,4 @@
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,6 +11,7 @@ namespace Iztar.UserInterface
 
         [Title("All Setting Components")]
         [SerializeField] private SliderSetting[] sliderComponents;
+        [SerializeField] private SwitchSetting[] switchComponents; // 🔥 tambahkan switch
 
         private SettingDataSO settingDataReference;
 
@@ -29,9 +30,18 @@ namespace Iztar.UserInterface
             OnEnableAsync().Forget();
         }
 
+        public void OpenSettingUI()
+        {
+            // TODO: tampilkan panel setting UI
+        }
+
         public void ResetSaveData()
         {
-            PopupChoiceWindow.Instance.Show("Confirm reset data?", onConfirm: () => SaveDataManager.Instance.ResetToDefault());
+            PopupChoiceWindow.Instance.Show("Confirm reset data?", onConfirm: () =>
+            {
+                SaveDataManager.Instance.ResetToDefault();
+                BindSettingsToComponents();
+            });
         }
 
         public void ExitToMainMenu()
@@ -43,7 +53,7 @@ namespace Iztar.UserInterface
         {
             if (GameManager.Instance.ActiveShip != null && settingDataReference != null)
             {
-                GameManager.Instance.ActiveShip.SetUpFromSettingData(settingDataReference);
+                GameManager.Instance.ActiveShip.SetUpFromSettingData();
             }
         }
 
@@ -57,6 +67,7 @@ namespace Iztar.UserInterface
 
         private void BindSettingsToComponents()
         {
+            // === SLIDER ===
             foreach (var comp in sliderComponents)
             {
                 if (comp == null) continue;
@@ -71,7 +82,26 @@ namespace Iztar.UserInterface
                 }
                 else
                 {
-                    Debug.LogWarning($"No setting data found for ID: {id}", comp);
+                    Debug.LogWarning($"No slider setting data found for ID: {id}", comp);
+                }
+            }
+
+            // === SWITCH ===
+            foreach (var comp in switchComponents)
+            {
+                if (comp == null) continue;
+
+                var id = comp.GetSettingID();
+                if (string.IsNullOrEmpty(id)) continue;
+
+                var match = System.Array.Find(settingDataReference.switchSettingDataArray, s => s.ID == id);
+                if (!string.IsNullOrEmpty(match.ID))
+                {
+                    comp.AssignData(match);
+                }
+                else
+                {
+                    Debug.LogWarning($"No switch setting data found for ID: {id}", comp);
                 }
             }
         }
@@ -80,6 +110,7 @@ namespace Iztar.UserInterface
         private void FetchAllComponentsInChildren()
         {
             sliderComponents = GetComponentsInChildren<SliderSetting>(true);
+            switchComponents = GetComponentsInChildren<SwitchSetting>(true); // 🔥 auto fetch juga
         }
     }
 }

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.IO;
 using Sirenix.OdinInspector;
+using System.Collections.Generic;
 
 public class SaveDataManager : MonoBehaviour
 {
@@ -9,6 +10,9 @@ public class SaveDataManager : MonoBehaviour
     [SerializeField] private SettingDataSO settingsData;
 
     public SettingDataSO SettingsData => settingsData;
+    public Dictionary<string, SettingDataSO.SliderSettingData> SliderSettingsDataDict { get; private set; }
+    public Dictionary<string, SettingDataSO.SwitchSettingData> SwitchSettingsDataDict { get; private set; }
+
 
     public string SavePath => Path.Combine(Application.persistentDataPath, "settings.json");
 
@@ -22,6 +26,18 @@ public class SaveDataManager : MonoBehaviour
         Instance = this;
 
         LoadOrInitialize();
+
+        SliderSettingsDataDict = new Dictionary<string, SettingDataSO.SliderSettingData>();
+        foreach (var setting in settingsData.sliderSettingDataArray)
+        {
+            SliderSettingsDataDict[setting.ID] = setting;
+        }
+
+        SwitchSettingsDataDict = new Dictionary<string, SettingDataSO.SwitchSettingData>();
+        foreach (var setting in settingsData.switchSettingDataArray)
+        {
+            SwitchSettingsDataDict[setting.ID] = setting;
+        }
     }
 
     /// <summary>
@@ -37,7 +53,6 @@ public class SaveDataManager : MonoBehaviour
         {
             Debug.Log("[SaveDataManager] No save found, initializing with default values");
             settingsData.InitializeDefaults();
-            settingsData.isUsingOneShotDash = settingsData.GetDashDefaultValue;
 
             SaveDataUtility.SaveSettings(settingsData);
         }
@@ -70,7 +85,6 @@ public class SaveDataManager : MonoBehaviour
         }
 
         settingsData.InitializeDefaults();
-        settingsData.isUsingOneShotDash = settingsData.GetDashDefaultValue;
 
         SaveDataUtility.SaveSettings(settingsData);
         Debug.Log("[SaveDataManager] Settings reset to default and saved.");

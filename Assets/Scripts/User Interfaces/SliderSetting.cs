@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,15 +7,19 @@ namespace Iztar.UserInterface
 {
     public class SliderSetting : SettingUIComponent
     {
+        [ShowInInspector, ReadOnly] protected SettingDataSO.SliderSettingData currentData;
+        public SettingDataSO.SliderSettingData GetCurrentData() => currentData;
+
+        [Header("UI References")]
         [SerializeField] private Slider slider;
         [SerializeField] private TextMeshProUGUI label;
 
         private int decimals;
         private string format;
 
-        public override void AssignData(SettingDataSO.SliderSettingData data)
+        public void AssignData(SettingDataSO.SliderSettingData data)
         {
-            base.AssignData(data);
+            currentData = data;
 
             if (!string.IsNullOrEmpty(currentData.ID))
             {

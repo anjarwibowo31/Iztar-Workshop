@@ -20,8 +20,8 @@ public static class SaveDataUtility
 
         var save = new SettingDataSave
         {
-            isUsingOneShotDash = setting.isUsingOneShotDash,
-            sliderValues = new SliderValue[setting.sliderSettingDataArray.Length]
+            sliderValues = new SliderValue[setting.sliderSettingDataArray.Length],
+            switchValues = new SwitchValue[setting.switchSettingDataArray.Length]
         };
 
         for (int i = 0; i < setting.sliderSettingDataArray.Length; i++)
@@ -30,6 +30,16 @@ public static class SaveDataUtility
             {
                 ID = setting.sliderSettingDataArray[i].ID,
                 currentValue = setting.sliderSettingDataArray[i].currentValue
+            };
+        }
+
+
+        for (int i = 0; i < setting.switchSettingDataArray.Length; i++)
+        {
+            save.switchValues[i] = new SwitchValue
+            {
+                ID = setting.switchSettingDataArray[i].ID,
+                currentValue = setting.switchSettingDataArray[i].currentValue
             };
         }
 
@@ -58,8 +68,6 @@ public static class SaveDataUtility
         string json = File.ReadAllText(SavePath);
         var save = JsonUtility.FromJson<SettingDataSave>(json);
 
-        setting.isUsingOneShotDash = save.isUsingOneShotDash;
-
         foreach (var loaded in save.sliderValues)
         {
             for (int i = 0; i < setting.sliderSettingDataArray.Length; i++)
@@ -74,6 +82,20 @@ public static class SaveDataUtility
             }
         }
 
+        foreach (var loaded in save.switchValues)
+        {
+            for (int i = 0; i < setting.switchSettingDataArray.Length; i++)
+            {
+                if (setting.switchSettingDataArray[i].ID == loaded.ID)
+                {
+                    var s = setting.switchSettingDataArray[i];
+                    s.currentValue = loaded.currentValue;
+                    setting.switchSettingDataArray[i] = s;
+                    break;
+                }
+            }
+        }
+
         Debug.Log($"[SaveManager] Settings loaded from {SavePath}");
     }
 }
@@ -81,12 +103,19 @@ public static class SaveDataUtility
 [Serializable]
 public class SettingDataSave
 {
-    public bool isUsingOneShotDash;
     public SliderValue[] sliderValues;
+    public SwitchValue[] switchValues;
 }
 
 [Serializable]
-public struct SliderValue
+public class SwitchValue
+{
+    public string ID;
+    public bool currentValue;
+}
+
+[Serializable]
+public class SliderValue
 {
     public string ID;
     public float currentValue;

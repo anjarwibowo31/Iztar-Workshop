@@ -6,14 +6,8 @@ namespace Iztar.UserInterface
 {
     public class SettingUIComponent : MonoBehaviour
     {
-        [ShowInInspector, ReadOnly] protected SettingDataSO.SliderSettingData currentData;
 
         [SerializeField] private string settingID;
-
-        public virtual void AssignData(SettingDataSO.SliderSettingData data)
-        {
-            currentData = data;
-        }
 
         [Button]
         private void FetchGameObjectNameForID()
@@ -22,6 +16,5 @@ namespace Iztar.UserInterface
         }
 
         public string GetSettingID() => settingID;
-        public SettingDataSO.SliderSettingData GetCurrentData() => currentData;
     }
 }

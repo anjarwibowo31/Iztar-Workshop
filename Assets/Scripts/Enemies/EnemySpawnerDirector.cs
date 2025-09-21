@@ -21,6 +21,10 @@ public class EnemySpawnerDirector : MonoBehaviour
     private Vector3[] frustumPolygon = new Vector3[0];
     private Vector3 lastSpawnPos;
 
+    private float totalEnemyPerBatch = 5f;
+    private float batchSpawnInterval = 0.2f;
+    private float maxTotalEnemy = 200f;
+
     // === Delegates ===
     private delegate void UpdateHandler();
     private UpdateHandler currentUpdate;
@@ -32,11 +36,22 @@ public class EnemySpawnerDirector : MonoBehaviour
         // Mulai dengan waiting state
         currentUpdate = UpdateIdle;
         StartCoroutine(WaitAndActivate(initialDelay));
+
+        SetUpFromSettingData();
     }
 
     private void Update()
     {
         currentUpdate?.Invoke();
+    }
+
+    public void SetUpFromSettingData()
+    {
+        Dictionary<string, SettingDataSO.SliderSettingData> dataDict = SaveDataManager.Instance.SliderSettingsDataDict;
+
+        totalEnemyPerBatch = dataDict["TotalEnemyPerBatch"].currentValue;
+        batchSpawnInterval = dataDict["BatchSpawnInterval"].currentValue;
+        maxTotalEnemy = dataDict["MaxTotalEnemy"].currentValue;
     }
 
     // Coroutine tunggu initial delay
@@ -47,10 +62,9 @@ public class EnemySpawnerDirector : MonoBehaviour
         currentUpdate = UpdateNormal;
     }
 
-    // State idle (tidak ngapa2in)
     private void UpdateIdle()
     {
-        // kosong, hanya menunggu delegate diganti
+
     }
 
     // State normal (jalan tiap frame)
@@ -67,7 +81,8 @@ public class EnemySpawnerDirector : MonoBehaviour
                 Vector3 pos = GetSpawnOutsideFrustum(frustumPolygon, offsetRadius);
                 lastSpawnPos = pos;
 
-                Instantiate(spawnBatch, pos, Quaternion.identity, SceneGameObjectContainer.EnemyContainer);
+                spawnBatch.transform.position = pos;
+                spawnBatch.TriggerSpawn();
             }
 
             spawnTimer = spawnInterval;

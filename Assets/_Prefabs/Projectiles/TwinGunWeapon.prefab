@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8734182423355467307}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Left_ProjectileFirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -40,7 +40,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6173435574249597294}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Right_ProjectileFirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -72,13 +72,13 @@ GameObject:
   m_Component:
   - component: {fileID: 3016440836189547098}
   - component: {fileID: 6508400794179247002}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: TwinGunWeapon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &3016440836189547098
 Transform:
   m_ObjectHideFlags: 0
@@ -114,4 +114,4 @@ MonoBehaviour:
   - {fileID: 6173435574249597294}
   fireRate: 1
   projectileDamage: 10
-  projectileSpeed: 60
+  projectileSpeed: 80

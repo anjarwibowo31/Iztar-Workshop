@@ -18,21 +18,34 @@ public class SettingDataSO : ScriptableObject
         public float GetDefaultValue => defaultValue;
     }
 
+    [Serializable]
+    public class SwitchSettingData
+    {
+        public string ID;
+        public bool currentValue;
+
+        [SerializeField] private bool defaultValue;
+
+        public bool GetDefaultValue => defaultValue;
+    }
+
     public SliderSettingData[] sliderSettingDataArray;
-
-    public bool isUsingOneShotDash = true;
-
-    [SerializeField] private bool dashDefaultValue = true;
-
-    public bool GetDashDefaultValue => dashDefaultValue;
+    public SwitchSettingData[] switchSettingDataArray;
 
     public void InitializeDefaults()
     {
         for (int i = 0; i < sliderSettingDataArray.Length; i++)
         {
-            var s = sliderSettingDataArray[i];
-            s.currentValue = s.GetDefaultValue;
-            sliderSettingDataArray[i] = s;
+            var sliderSetting = sliderSettingDataArray[i];
+            sliderSetting.currentValue = sliderSetting.GetDefaultValue;
+            sliderSettingDataArray[i] = sliderSetting;
+        }
+
+        for (int i = 0; i < switchSettingDataArray.Length; i++)
+        {
+            var switchSetting = switchSettingDataArray[i];
+            switchSetting.currentValue = switchSetting.GetDefaultValue;
+            switchSettingDataArray[i] = switchSetting;
         }
     }
 }
