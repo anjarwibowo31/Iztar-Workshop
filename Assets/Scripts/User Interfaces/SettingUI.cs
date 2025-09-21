@@ -110,7 +110,7 @@ namespace Iztar.UserInterface
         private void FetchAllComponentsInChildren()
         {
             sliderComponents = GetComponentsInChildren<SliderSetting>(true);
-            switchComponents = GetComponentsInChildren<SwitchSetting>(true); // 🔥 auto fetch juga
+            switchComponents = GetComponentsInChildren<SwitchSetting>(true);
         }
     }
 }

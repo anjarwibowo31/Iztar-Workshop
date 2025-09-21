@@ -8,7 +8,7 @@ public class JsonDeleteWIndow : EditorWindow
     private string folderPath;
     private string fileName = "saveData.json";
 
-    [MenuItem("Iztar Tools/Save Data Delete")] // 👈 hanya 1 pemuncul
+    [MenuItem("Iztar Tools/Save Data Delete")]
     public static void ShowWindow()
     {
         GetWindow<JsonDeleteWIndow>("Save Data Deleter");

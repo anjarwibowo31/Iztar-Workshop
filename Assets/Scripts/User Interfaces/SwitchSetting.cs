@@ -1,9 +1,8 @@
-using Cysharp.Threading.Tasks;
-using Sirenix.OdinInspector;
 using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using Sirenix.OdinInspector;
 
 namespace Iztar.UserInterface
 {
@@ -59,7 +58,6 @@ namespace Iztar.UserInterface
 
             currentData = match;
 
-            // inject getter & setter ke Initialize
             Initialize(
                 getter: () => currentData.currentValue,
                 setter: val => currentData.currentValue = val

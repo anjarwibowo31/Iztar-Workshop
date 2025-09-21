@@ -1,7 +1,7 @@
-﻿using Sirenix.OdinInspector;
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using Sirenix.OdinInspector;
 
 namespace Iztar.UserInterface
 {

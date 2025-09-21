@@ -2,10 +2,14 @@ using UnityEngine;
 using System.IO;
 using Sirenix.OdinInspector;
 using System.Collections.Generic;
+using System;
 
 public class SaveDataManager : MonoBehaviour
 {
     public static SaveDataManager Instance { get; private set; }
+
+    public event Action OnDataChanged;
+
 
     [SerializeField] private SettingDataSO settingsData;
 
@@ -45,6 +49,8 @@ public class SaveDataManager : MonoBehaviour
     /// </summary>
     public void LoadOrInitialize()
     {
+        OnDataChanged?.Invoke();
+
         if (File.Exists(SavePath))
         {
             SaveDataUtility.LoadSettings(settingsData);
@@ -63,6 +69,8 @@ public class SaveDataManager : MonoBehaviour
     /// </summary>
     public void Save()
     {
+        OnDataChanged?.Invoke();
+
         if (settingsData == null)
         {
             Debug.LogError("[SaveDataManager] settingsData is null, cannot save!");
