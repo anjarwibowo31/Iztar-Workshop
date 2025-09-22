@@ -44,6 +44,11 @@ public static class SaveDataUtility
         }
 
         string json = JsonUtility.ToJson(save, true);
+        string dir = Path.GetDirectoryName(SavePath);
+        if (!Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
         File.WriteAllText(SavePath, json);
         Debug.Log($"[SaveManager] Settings saved to {SavePath}");
     }

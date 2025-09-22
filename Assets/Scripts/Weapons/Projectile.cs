@@ -35,10 +35,7 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.TryGetComponent(out IDamageable target))
-        {
-            target.TakeDamage(damage);
-        }
+        Destroy(other.gameObject);
 
         if (hitEffect != null)
         {

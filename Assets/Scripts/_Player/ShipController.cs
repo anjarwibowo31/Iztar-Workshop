@@ -1,20 +1,24 @@
 ﻿using Iztar.Manager;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities.Editor;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
-
+#if UNITY_EDITOR
+using Sirenix.Utilities.Editor;
+#endif
 namespace Iztar.ShipModule
 {
     public class ShipController : MonoBehaviour
     {
         public static ShipController Instance { get; private set; }
 
-        #region Delegate
+        #region Delegate & Events
+        public event Action<float, float> OnDashEnergyChanged;   // current, max
+        public event Action<float, float> OnDashCooldownChanged; // current, max
 
         public event Action<float> OnCollision;
+
         private delegate void HandleDashInput();
         private delegate void HandleDashMovement();
         private delegate void UpdateState();
@@ -227,6 +231,7 @@ namespace Iztar.ShipModule
         #endregion
 
         #region Public Methods
+        public bool GetDashState() => isDashing;
 
         [Button("Switch Dash Mode")]
         public void SwitchDashMode()
@@ -330,6 +335,7 @@ namespace Iztar.ShipModule
                 if (dashVfx != null) dashVfx.Play(true);
             }
         }
+
         private void HandleDashDrainingInput()
         {
             if (GameplayInputSystem.Instance == null) return;
@@ -348,6 +354,8 @@ namespace Iztar.ShipModule
                 dashEnergy -= dashEnergyDrainRate * Time.deltaTime;
                 dashEnergy = Mathf.Max(0f, dashEnergy);
                 dashEnergyRegenTimer = dashEnergyRegenDelay;
+
+                OnDashEnergyChanged?.Invoke(dashEnergy, dashEnergyMax);
             }
             else
             {
@@ -362,7 +370,14 @@ namespace Iztar.ShipModule
                     if (dashEnergyRegenTimer > 0f)
                         dashEnergyRegenTimer -= Time.deltaTime;
                     else
+                    {
+
                         dashEnergy += dashEnergyRegenRate * Time.deltaTime;
+                        dashEnergy = Mathf.Min(dashEnergy, dashEnergyMax);
+
+                        // publish perubahan
+                        OnDashEnergyChanged?.Invoke(dashEnergy, dashEnergyMax);
+                    }
                 }
             }
         }
@@ -458,19 +473,17 @@ namespace Iztar.ShipModule
                 StopVfx(dashVfx);
             }
         }
+
         private void HandleDashDrainingMovement()
         {
             if (!isDashing) return;
 
-            // Boost speed tetap aktif selama tombol ditekan & ada energi
             float targetSpeed = maxMoveSpeed + dashSpeed;
             Vector3 dashVelocity = transform.forward * targetSpeed;
 
             currentVelocity = Vector3.Lerp(currentVelocity, dashVelocity, Time.deltaTime * 10f);
             currentSpeed = currentVelocity.magnitude;
         }
-
-        public bool GetDashState() => IsDashing;
 
         #endregion
 

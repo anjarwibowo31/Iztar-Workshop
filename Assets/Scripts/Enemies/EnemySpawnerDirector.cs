@@ -21,9 +21,7 @@ public class EnemySpawnerDirector : MonoBehaviour
     private Vector3[] frustumPolygon = new Vector3[0];
     private Vector3 lastSpawnPos;
 
-    private float totalEnemyPerBatch = 5f;
-    private float batchSpawnInterval = 0.2f;
-    private float maxTotalEnemy = 200f;
+    private int totalEnemyPerBatch = 5;
 
     // === Delegates ===
     private delegate void UpdateHandler();
@@ -38,6 +36,8 @@ public class EnemySpawnerDirector : MonoBehaviour
         StartCoroutine(WaitAndActivate(initialDelay));
 
         SetUpFromSettingData();
+
+        SaveDataManager.Instance.OnDataChanged += SetUpFromSettingData;
     }
 
     private void Update()
@@ -49,9 +49,10 @@ public class EnemySpawnerDirector : MonoBehaviour
     {
         Dictionary<string, SettingDataSO.SliderSettingData> dataDict = SaveDataManager.Instance.SliderSettingsDataDict;
 
-        totalEnemyPerBatch = dataDict["TotalEnemyPerBatch"].currentValue;
-        batchSpawnInterval = dataDict["BatchSpawnInterval"].currentValue;
-        maxTotalEnemy = dataDict["MaxTotalEnemy"].currentValue;
+        totalEnemyPerBatch = (int)dataDict["TotalEnemyPerBatch"].currentValue;
+        spawnBatch.SetData((int)totalEnemyPerBatch);
+
+        spawnInterval = dataDict["BatchSpawnInterval"].currentValue;
     }
 
     // Coroutine tunggu initial delay

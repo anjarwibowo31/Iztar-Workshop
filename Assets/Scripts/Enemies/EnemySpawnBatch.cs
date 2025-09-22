@@ -10,14 +10,32 @@ public class EnemySpawnBatch : MonoBehaviour
     [SerializeField] private float spawnRadius = 10f;
     [SerializeField] private float spawnDelay = 0.2f;
 
-    private List<GameObject> spawnedEnemies = new();
+    private readonly List<GameObject> spawnedEnemies = new();
 
+    /// <summary>
+    /// Set jumlah musuh per batch dan jeda antar spawn
+    /// </summary>
+    public void SetData(int totalEnemyPerBatch)
+    {
+        batchCount = Mathf.Max(1, totalEnemyPerBatch);
+    }
+
+    /// <summary>
+    /// Coroutine untuk spawn musuh satu per satu
+    /// </summary>
     private IEnumerator SpawnBatchCoroutine()
     {
         spawnedEnemies.Clear();
 
         for (int i = 0; i < batchCount; i++)
         {
+            if (enemyPrefab == null)
+            {
+                Debug.LogError("Enemy prefab belum di-assign!");
+                yield break;
+            }
+
+            // Tentukan posisi random dalam lingkaran
             Vector2 circle = Random.insideUnitCircle * spawnRadius;
             Vector3 randomPos = new(
                 transform.position.x + circle.x,
@@ -25,22 +43,26 @@ public class EnemySpawnBatch : MonoBehaviour
                 transform.position.z + circle.y
             );
 
-            GameObject enemy = Instantiate(enemyPrefab, randomPos, Quaternion.identity, SceneGameObjectContainer.EnemyContainer);
-            enemy.SetActive(false);
+            // Spawn enemy
+            Transform parent = SceneGameObjectContainer.EnemyContainer != null
+                ? SceneGameObjectContainer.EnemyContainer
+                : null;
+
+            GameObject enemy = Instantiate(enemyPrefab, randomPos, Quaternion.identity, parent);
             spawnedEnemies.Add(enemy);
 
-            yield return new WaitForSeconds(spawnDelay);
-        }
-
-        foreach (var enemy in spawnedEnemies)
-        {
-            if (enemy != null)
-                enemy.SetActive(true);
+            // tunggu sebelum spawn berikutnya
+            if (spawnDelay > 0f)
+                yield return new WaitForSeconds(spawnDelay);
         }
     }
 
+    /// <summary>
+    /// Trigger spawn batch baru
+    /// </summary>
     public void TriggerSpawn()
     {
+        StopAllCoroutines(); // biar tidak overlap kalau dipanggil berulang
         StartCoroutine(SpawnBatchCoroutine());
     }
 
