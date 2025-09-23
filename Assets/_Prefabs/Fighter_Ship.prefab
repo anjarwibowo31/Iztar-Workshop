@@ -29539,7 +29539,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ca0bbe14c0e6b742a25840602e99559, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shipMainWeapon: {fileID: 83772708383858494}
+  mainWeaponData:
+  - {fileID: 2854055176103184249}
+  - {fileID: 83772708383858494}
+  - {fileID: 374561179043129409}
   aimResetDelay: 1.5
   aimResetLerpSpeed: 4
   weaponDirectionalGuide: {fileID: 8346520407078713982}
@@ -34561,6 +34564,7 @@ Transform:
   - {fileID: 760524870289114998}
   - {fileID: 6058842267007661753}
   - {fileID: 8519396221033699482}
+  - {fileID: 8224085310604521445}
   m_Father: {fileID: 5356192128231957984}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6104211544610185035
@@ -39624,6 +39628,79 @@ Transform:
   - {fileID: 325834190836808174}
   m_Father: {fileID: 5356192128231957984}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1837977141272903788
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8346520407078713982}
+    m_Modifications:
+    - target: {fileID: 4193482611726743831, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_Name
+      value: FastSpreadGunWeapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+--- !u!114 &374561179043129409 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2068131965585352749, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+  m_PrefabInstance: {fileID: 1837977141272903788}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f574aecd42be92449a1e280344abb506, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &8224085310604521445 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7755229879511756681, guid: 6e5de1c4198028746ab6fe1f50f8faf7, type: 3}
+  m_PrefabInstance: {fileID: 1837977141272903788}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2133270008460998419
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -39635,6 +39712,10 @@ PrefabInstance:
     - target: {fileID: 4193482611726743831, guid: 0d352b956a0ad5042a6bb9a68080bfb5, type: 3}
       propertyPath: m_Name
       value: SpreadGunWeapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 4193482611726743831, guid: 0d352b956a0ad5042a6bb9a68080bfb5, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7755229879511756681, guid: 0d352b956a0ad5042a6bb9a68080bfb5, type: 3}
       propertyPath: m_LocalPosition.x
@@ -39815,11 +39896,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: TwinGunWeapon
       objectReference: {fileID: 0}
+    - target: {fileID: 8669058465068203204, guid: e6fd1b0ab6429bd408d7eec1c43c40cb, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e6fd1b0ab6429bd408d7eec1c43c40cb, type: 3}
+--- !u!114 &2854055176103184249 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6508400794179247002, guid: e6fd1b0ab6429bd408d7eec1c43c40cb, type: 3}
+  m_PrefabInstance: {fileID: 9064013244201589987}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49f192a3862f5074f867fb7163438468, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &6058842267007661753 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3016440836189547098, guid: e6fd1b0ab6429bd408d7eec1c43c40cb, type: 3}

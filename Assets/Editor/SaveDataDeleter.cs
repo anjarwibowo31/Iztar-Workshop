@@ -3,15 +3,15 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 
-public class JsonDeleteWIndow : EditorWindow
+public class SaveDataDeleter : EditorWindow
 {
     private string folderPath;
-    private string fileName = "saveData.json";
+    private string fileName = "settings.json";
 
-    [MenuItem("Iztar Tools/Save Data Delete")]
+    [MenuItem("Iztar Tools/Save Data Deleter")]
     public static void ShowWindow()
     {
-        GetWindow<JsonDeleteWIndow>("Save Data Deleter");
+        GetWindow<SaveDataDeleter>("Save Data Deleter");
     }
 
     private void OnEnable()

@@ -12,17 +12,11 @@ public class EnemySpawnBatch : MonoBehaviour
 
     private readonly List<GameObject> spawnedEnemies = new();
 
-    /// <summary>
-    /// Set jumlah musuh per batch dan jeda antar spawn
-    /// </summary>
     public void SetData(int totalEnemyPerBatch)
     {
         batchCount = Mathf.Max(1, totalEnemyPerBatch);
     }
 
-    /// <summary>
-    /// Coroutine untuk spawn musuh satu per satu
-    /// </summary>
     private IEnumerator SpawnBatchCoroutine()
     {
         spawnedEnemies.Clear();
@@ -57,12 +51,9 @@ public class EnemySpawnBatch : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Trigger spawn batch baru
-    /// </summary>
     public void TriggerSpawn()
     {
-        StopAllCoroutines(); // biar tidak overlap kalau dipanggil berulang
+        StopAllCoroutines();
         StartCoroutine(SpawnBatchCoroutine());
     }
 

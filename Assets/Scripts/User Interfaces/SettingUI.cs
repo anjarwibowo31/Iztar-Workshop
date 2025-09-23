@@ -32,7 +32,12 @@ namespace Iztar.UserInterface
 
         public void OpenSettingUI()
         {
-            // TODO: tampilkan panel setting UI
+            GameManager.Instance.PauseGame();
+        }
+
+        public void CloseSettingUI()
+        {
+            GameManager.Instance.ResumeGame();
         }
 
         public void ResetSaveData()

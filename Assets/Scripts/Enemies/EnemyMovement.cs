@@ -30,8 +30,13 @@ public class EnemyMovement : MonoBehaviour
 
     private void Start()
     {
-        currentSpeed = speed; // mulai dengan normal speed
+        currentSpeed = speed;
         StartAsync().Forget();
+    }
+
+    private void OnDestroy()
+    {
+        EnemySpawnerDirector.Instance.DeleteOneFromTotal();
     }
 
     private async UniTaskVoid StartAsync()

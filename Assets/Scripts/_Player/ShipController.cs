@@ -39,6 +39,9 @@ namespace Iztar.ShipModule
         private Vector3 CurrentVelocity => currentVelocity;
 
         [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
+        private bool IsUsingOneShot => isUsingOneShot;
+
+        [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
         private bool IsDashing => isDashing;
 
         [FoldoutGroup("Debug"), ShowInInspector, ReadOnly, PropertyOrder(-10)]
@@ -77,9 +80,6 @@ namespace Iztar.ShipModule
         [SerializeField] private float bankLerpSpeed = 4f;
 
         [Title("Dash")]
-        [ShowInInspector, ReadOnly]
-        private bool isUsingOneShot = true;
-
         // One-Shot Mode
         [BoxGroup("One-Shot"), SerializeField] private float dashSpeed = 80f;
         [BoxGroup("One-Shot"), SerializeField] private float dashDuration = 0.4f;
@@ -133,6 +133,8 @@ namespace Iztar.ShipModule
         private float bobOffsetY;
         private Quaternion visualBaseLocalRot;
         private Vector3 visualBaseLocalPos;
+
+        private bool isUsingOneShot = true;
 
         private float dashTimer;
         private float dashCooldownTimer;
@@ -243,6 +245,8 @@ namespace Iztar.ShipModule
 
         private void ChangeDashMode(bool isUsingOneShot)
         {
+            this.isUsingOneShot = isUsingOneShot;
+
             HandleDashInputDelegate = isUsingOneShot ? HandleDashOneShotInput : HandleDashDrainingInput;
             HandleDashMovementDelegate = isUsingOneShot ? HandleDashOneShotMovement : HandleDashDrainingMovement;
 
@@ -336,12 +340,12 @@ namespace Iztar.ShipModule
             }
         }
 
+
         private void HandleDashDrainingInput()
         {
             if (GameplayInputSystem.Instance == null) return;
 
             bool dashHeld = GameplayInputSystem.Instance.IsDashHeld();
-            // NOTE: pastikan InputManager punya method GetDashHeld() (cek tombol masih ditekan)
 
             if (dashHeld && dashEnergy > 0f)
             {
@@ -371,11 +375,8 @@ namespace Iztar.ShipModule
                         dashEnergyRegenTimer -= Time.deltaTime;
                     else
                     {
-
                         dashEnergy += dashEnergyRegenRate * Time.deltaTime;
                         dashEnergy = Mathf.Min(dashEnergy, dashEnergyMax);
-
-                        // publish perubahan
                         OnDashEnergyChanged?.Invoke(dashEnergy, dashEnergyMax);
                     }
                 }

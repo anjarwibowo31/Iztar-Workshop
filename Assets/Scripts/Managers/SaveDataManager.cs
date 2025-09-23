@@ -30,7 +30,11 @@ public class SaveDataManager : MonoBehaviour
         Instance = this;
 
         LoadOrInitialize();
+        InitializeDictionary();
+    }
 
+    private void InitializeDictionary()
+    {
         SliderSettingsDataDict = new Dictionary<string, SettingDataSO.SliderSettingData>();
         foreach (var setting in settingsData.sliderSettingDataArray)
         {
@@ -54,6 +58,7 @@ public class SaveDataManager : MonoBehaviour
         if (File.Exists(SavePath))
         {
             SaveDataUtility.LoadSettings(settingsData);
+            InitializeDictionary();
         }
         else
         {
@@ -61,6 +66,7 @@ public class SaveDataManager : MonoBehaviour
             settingsData.InitializeDefaults();
 
             SaveDataUtility.SaveSettings(settingsData);
+            InitializeDictionary();
         }
     }
 
@@ -76,8 +82,8 @@ public class SaveDataManager : MonoBehaviour
             Debug.LogError("[SaveDataManager] settingsData is null, cannot save!");
             return;
         }
-
         SaveDataUtility.SaveSettings(settingsData);
+        InitializeDictionary();
     }
 
     /// <summary>
@@ -86,6 +92,8 @@ public class SaveDataManager : MonoBehaviour
     [Button]
     public void ResetToDefault()
     {
+        InitializeDictionary();
+
         if (settingsData == null)
         {
             Debug.LogError("[SaveDataManager] settingsData is null, cannot reset!");

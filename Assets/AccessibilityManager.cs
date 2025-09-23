@@ -19,8 +19,6 @@ namespace Iztar.Manager
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
-
         }
 
         private void Start()
@@ -33,6 +31,11 @@ namespace Iztar.Manager
 
             MotionSicknessReduction = SaveDataManager.Instance.SwitchSettingsDataDict["MotionSicknessReduction"].currentValue;
             OnConitionChanged?.Invoke(MotionSicknessReduction);
+        }
+
+        private void OnDestroy()
+        {
+            
         }
     }
 }

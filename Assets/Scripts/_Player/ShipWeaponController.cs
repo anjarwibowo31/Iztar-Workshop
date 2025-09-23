@@ -3,11 +3,13 @@ using Sirenix.OdinInspector;
 using Iztar.Manager;
 using Iztar.Utility;
 using Iztar.ShipModule;
+using System.Collections.Generic;
 
 public class ShipWeaponController : MonoBehaviour
 {
+
     [Title("Weapon")]
-    [SerializeField] private Weapon shipMainWeapon;
+    [SerializeField] private Weapon[] mainWeaponData;
     [SerializeField] private float aimResetDelay = 1.5f;
     [SerializeField] private float aimResetLerpSpeed = 4f;
 
@@ -27,6 +29,8 @@ public class ShipWeaponController : MonoBehaviour
     [SerializeField, Range(1f, 120f)] private float lockAngleExit = 45f;
     [SerializeField] private LayerMask targetMask;
 
+    private Weapon activeWeapon;
+    private int weaponActiveIndex;
     private Vector2 aimInput;
     private bool hasAimInput;
     private bool hasTarget;
@@ -34,9 +38,19 @@ public class ShipWeaponController : MonoBehaviour
     private Transform currentTarget;
     private float aimResetTimer;
 
-    private void Start()
+    private void Awake()
     {
-        shipMainWeapon.WeaponActive = true;
+        foreach (var weapon in mainWeaponData)
+        {
+            weapon.gameObject.SetActive(false);
+            weapon.WeaponActive = false;
+        }
+
+        activeWeapon = mainWeaponData[0];
+        weaponActiveIndex = 0;
+
+        activeWeapon.gameObject.SetActive(true);
+        activeWeapon.WeaponActive = true;
     }
 
     private void Update()
@@ -45,6 +59,26 @@ public class ShipWeaponController : MonoBehaviour
         HandleAiming();
 
         HandleWeaponDashState();
+    }
+
+    [Button]
+    public void ChangeWeapon()
+    {
+        activeWeapon.gameObject.SetActive(false);
+        activeWeapon.WeaponActive = false;
+
+        int nextIndex = weaponActiveIndex + 1;
+
+        if (nextIndex >= mainWeaponData.Length)
+        {
+            nextIndex = 0;
+        }
+
+        weaponActiveIndex = nextIndex;
+        activeWeapon = mainWeaponData[nextIndex];
+
+        activeWeapon.gameObject.SetActive(true);
+        activeWeapon.WeaponActive = true;
     }
 
     public void DisableWeapon()
@@ -67,11 +101,11 @@ public class ShipWeaponController : MonoBehaviour
     {
         if (GameManager.Instance.ActiveShip.GetDashState() == true)
         {
-            shipMainWeapon.WeaponActive = false;
+            activeWeapon.WeaponActive = false;
         }
         else
         {
-            shipMainWeapon.WeaponActive = true;
+            activeWeapon.WeaponActive = true;
         }
     }
 
@@ -86,7 +120,7 @@ public class ShipWeaponController : MonoBehaviour
 
     private void HandleAiming()
     {
-        shipMainWeapon.ShotDirection = weaponDirectionalGuide.forward;
+        activeWeapon.ShotDirection = weaponDirectionalGuide.forward;
 
         if (currentTarget != null)
         {

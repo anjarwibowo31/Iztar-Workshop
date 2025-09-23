@@ -16,6 +16,10 @@ public class EnemySpawnerDirector : MonoBehaviour
     [Header("Spawn Routine")]
     [SerializeField] private float spawnInterval = 5f;
     [SerializeField] private float initialDelay = 2f;
+
+    private int maxTotalActiveEnemies = 100;
+    private int currentActiveEnemies = 0;
+
     private float spawnTimer;
 
     private Vector3[] frustumPolygon = new Vector3[0];
@@ -27,11 +31,23 @@ public class EnemySpawnerDirector : MonoBehaviour
     private delegate void UpdateHandler();
     private UpdateHandler currentUpdate;
 
+    public static EnemySpawnerDirector Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
+
+
     private void Start()
     {
         if (cam == null) cam = Camera.main;
 
-        // Mulai dengan waiting state
         currentUpdate = UpdateIdle;
         StartCoroutine(WaitAndActivate(initialDelay));
 
@@ -45,6 +61,17 @@ public class EnemySpawnerDirector : MonoBehaviour
         currentUpdate?.Invoke();
     }
 
+    private void OnDestroy()
+    {
+        if (SaveDataManager.Instance != null)
+            SaveDataManager.Instance.OnDataChanged -= SetUpFromSettingData;
+    }
+
+    public void DeleteOneFromTotal()
+    {
+        currentActiveEnemies -= 1;
+    }
+
     public void SetUpFromSettingData()
     {
         Dictionary<string, SettingDataSO.SliderSettingData> dataDict = SaveDataManager.Instance.SliderSettingsDataDict;
@@ -53,9 +80,10 @@ public class EnemySpawnerDirector : MonoBehaviour
         spawnBatch.SetData((int)totalEnemyPerBatch);
 
         spawnInterval = dataDict["BatchSpawnInterval"].currentValue;
+
+        maxTotalActiveEnemies = (int)dataDict["MaxTotalEnemy"].currentValue;
     }
 
-    // Coroutine tunggu initial delay
     private IEnumerator WaitAndActivate(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -68,13 +96,12 @@ public class EnemySpawnerDirector : MonoBehaviour
 
     }
 
-    // State normal (jalan tiap frame)
     private void UpdateNormal()
     {
         if (cam == null) return;
 
         spawnTimer -= Time.deltaTime;
-        if (spawnTimer <= 0f)
+        if (spawnTimer <= 0f && (currentActiveEnemies + totalEnemyPerBatch) <= maxTotalActiveEnemies)
         {
             frustumPolygon = GetFrustumPolygon(cam, planeY);
             if (frustumPolygon.Length >= 3)
@@ -86,6 +113,7 @@ public class EnemySpawnerDirector : MonoBehaviour
                 spawnBatch.TriggerSpawn();
             }
 
+            currentActiveEnemies += totalEnemyPerBatch;
             spawnTimer = spawnInterval;
         }
     }

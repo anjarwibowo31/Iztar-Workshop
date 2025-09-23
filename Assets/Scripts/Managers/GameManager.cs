@@ -2,6 +2,7 @@
 using Iztar.ShipModule;
 using Sirenix.OdinInspector;
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -79,12 +80,20 @@ public class GameManager : MonoBehaviour
     public void PauseGame()
     {
         if (IsPaused) return;
+        StartCoroutine(PauseCoroutine());
+    }
 
-        Time.timeScale = 0f;
+    private IEnumerator PauseCoroutine()
+    {
         IsPaused = true;
 
-        // TODO: panggil UI pause kalau ada
         Debug.Log("Game Paused");
+
+        yield return new WaitForSecondsRealtime(0.4f);
+
+        Debug.Log("Pause menu animasi selesai");
+
+        Time.timeScale = 0f;
     }
 
     public void ResumeGame()
@@ -94,7 +103,6 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         IsPaused = false;
 
-        // TODO: sembunyikan UI pause kalau ada
         Debug.Log("Game Resumed");
     }
 }

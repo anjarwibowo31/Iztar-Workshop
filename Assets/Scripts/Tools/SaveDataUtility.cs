@@ -45,10 +45,13 @@ public static class SaveDataUtility
 
         string json = JsonUtility.ToJson(save, true);
         string dir = Path.GetDirectoryName(SavePath);
+
+#if UNITY_ANDROID
         if (!Directory.Exists(dir))
         {
             Directory.CreateDirectory(dir);
         }
+#endif
         File.WriteAllText(SavePath, json);
         Debug.Log($"[SaveManager] Settings saved to {SavePath}");
     }
